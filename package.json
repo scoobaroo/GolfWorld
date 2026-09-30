@@ -1,0 +1,26 @@
+{
+  "name": "golfworld",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "eslint .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "db:generate": "pnpm --filter server db:generate",
+    "db:migrate": "pnpm --filter server db:migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.6",
+    "typescript": "~5.9.3",
+    "eslint": "^9.39.1",
+    "@eslint/js": "^9.39.1",
+    "typescript-eslint": "^8.46.0",
+    "globals": "^16.4.0"
+  }
+}

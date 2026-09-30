@@ -1,0 +1,10 @@
+{
+  "name": "GolfWorld — Meadow Club",
+  "short_name": "GolfWorld",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#123f32",
+  "theme_color": "#123f32",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

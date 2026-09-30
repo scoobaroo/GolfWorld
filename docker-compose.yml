@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: golfworld
+      POSTGRES_PASSWORD: golfworld
+      POSTGRES_DB: golfworld
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+volumes:
+  postgres-data:
