@@ -6,6 +6,24 @@ const places: Destination[] = [
   { id: 'us', name: 'Google Building 41', address: '1600 Amphitheatre Parkway, Mountain View, USA', country: 'US', kind: 'commercial', precision: 'address', lat: 37.4224858, lon: -122.0855846 },
   { id: 'tw', name: '台北101', address: '7 信義路五段, 台北市, 臺灣', country: 'TW', kind: 'attraction', precision: 'address', lat: 25.0338352, lon: 121.5644995 },
 ];
+test('Canadian and Taiwanese suggestions remove repeated map objects and street segments', async ({ page }) => {
+  await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ status: 204 }));
+  const canadianStreet: Destination = { ...places[0], id: 'street-a', name: 'Main Street', precision: 'street', kind: 'primary', address: 'Winnipeg, Manitoba, R2V 2C2, Canada' };
+  const taiwan = { ...places[2], address: '台北市, 信義路五段7號, 11049, 臺灣' };
+  const suggestions = [places[0], { ...places[0], id: 'ca-duplicate', lat: places[0].lat + 0.00001 }, canadianStreet,
+    { ...canadianStreet, id: 'street-b', lat: 49.887, address: 'Winnipeg, Manitoba, R3C 1A3, Canada' },
+    taiwan, { ...taiwan, id: 'tw-duplicate', name: '臺北１０１', lon: taiwan.lon + 0.00001 },
+    { ...taiwan, id: 'restaurant', name: '欣葉食藝軒', kind: 'restaurant' }, places[1]];
+  await page.route('**/api/geo/search?**', (route) => route.fulfill({ json: { results: suggestions } }));
+  await page.goto('/'); await expect(page.locator('main[data-world-ready="true"]')).toBeVisible({ timeout: 30000 });
+  await page.getByRole('button', { name: 'Global map', exact: true }).click();
+  const input = page.getByRole('combobox', { name: 'Address or golf course' }); const options = page.getByRole('listbox', { name: 'Address suggestions' }).getByRole('option');
+  await page.getByLabel('Search region', { exact: true }).selectOption('CA'); await input.fill('Main Street Winnipeg');
+  await expect(options).toHaveCount(2); await expect(options).toContainText(['Kildonan Park Golf Course', 'Main Street']);
+  await page.getByLabel('Search region', { exact: true }).selectOption('TW'); await input.fill('台北市信義區信義路五段7號');
+  await expect(options).toHaveCount(2); await expect(options).toContainText(['台北101', '欣葉食藝軒']);
+  await expect(options.first()).toContainText('信義路五段7號'); await expect(options.first().locator('[data-place-icon]')).toHaveAttribute('data-place-icon', 'landmark');
+});
 test('search, real-world travel, avatar map, restore, and failed travel work on touch and desktop', async ({ page }, info) => {
   await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#d9e4cf"/><path d="M0 120H256M128 0V256" stroke="#fff" stroke-width="12"/></svg>' }));
   await page.route('**/api/geo/search?**', (route) => {

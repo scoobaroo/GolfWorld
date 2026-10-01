@@ -74,6 +74,12 @@ with mouse and touch. Load next neighborhood appears near the region edge.
 Known positions/footprints use WGS84 and real meters. Building heights and
 road widths can be estimates, terrain is flat, and data coverage varies;
 this is not an exact visual reconstruction of every address/building.
+Canadian street addresses and Traditional Chinese Taiwanese addresses use the
+same lookup. Select Canada or Taiwan to narrow matches. Try
+`台北市信義區信義路五段7號`; the API splits city/district/street/house number
+for the geocoder and displays the Taiwanese street number after the street.
+Repeated map objects and segments of one street in one city produce one
+suggestion; distinct businesses and different house numbers remain separate.
 Tap/click a building for its mapped type, address, and height.
 Real-world courses can be visited; playable golf remains Meadow Run.
 See [geography implementation and Grok handoff](docs/geography-handoff.md)

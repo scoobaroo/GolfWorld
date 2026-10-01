@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { geoPointSchema, geoToLocal, localToGeo, type Destination, type GeoFeature, type GeoPoint, type Neighborhood } from '@golfworld/shared';
+import { geoPointSchema, geoToLocal, localToGeo, uniqueDestinations, type Destination, type GeoFeature, type GeoPoint, type Neighborhood } from '@golfworld/shared';
 
 const coordinate = geoPointSchema;
 const elementSchema = z.object({
@@ -14,17 +14,28 @@ const photonSchema = z.object({ features: z.array(z.object({
 })) });
 
 export function parseSearch(data: unknown): Destination[] {
-  return photonSchema.parse(data).features.flatMap(({ geometry, properties: p }) => {
-    const text = (key: string): string => typeof p[key] === 'string' ? p[key] as string : '';
+  return uniqueDestinations(photonSchema.parse(data).features.flatMap(({ geometry, properties: p }) => {
+    const text = (key: string): string => typeof p[key] === 'string' ? (p[key] as string).trim() : '';
     const country = text('countrycode').toUpperCase();
     const point = geoPointSchema.safeParse({ lat: geometry.coordinates[1], lon: geometry.coordinates[0] });
     if (!point.success || !['US', 'CA', 'TW'].includes(country)) return [];
-    const street = [text('housenumber'), text('street')].filter(Boolean).join(' ');
-    const address = [...new Set([street, text('city') || text('district'), text('state'), text('postcode'), text('country')].filter(Boolean))].join(', ');
+    const house = text('housenumber');
+    const street = country === 'TW' ? `${text('street')}${house ? /號$/.test(house) ? house : `${house}號` : ''}` : [house, text('street')].filter(Boolean).join(' ');
+    const parts = country === 'TW' ? [text('state'), text('city'), text('district'), street, text('postcode'), text('country')] : [street, text('city') || text('district'), text('state'), text('postcode'), text('country')];
+    const address = [...new Map(parts.filter(Boolean).map((value) => [value.replaceAll('臺', '台'), value])).values()].join(', ');
     return [{ ...point.data, id: `${p.osm_type ?? 'place'}:${p.osm_id ?? `${point.data.lat},${point.data.lon}`}`,
       name: text('name').split(';')[0] || street || address || 'Map location', address, country: country as Destination['country'],
       kind: text('osm_value') || text('type') || 'place', precision: text('housenumber') ? 'address' : text('type') === 'street' ? 'street' : 'place' } as Destination];
-  });
+  }));
+}
+export function addressSearchQuery(query: string, country: string): string {
+  const text = query.normalize('NFKC').trim();
+  if (!['TW', 'all'].includes(country) || !/\p{Script=Han}/u.test(text) || !/\d+(?:[之-]\d+)?號/.test(text)) return text;
+  // Photon needs word boundaries for commonly pasted, unspaced Taiwanese addresses.
+  return text.replace(/^([\p{Script=Han}]{2,5}[縣市])(?=\S)/u, '$1 ')
+    .replace(/^((?:[\p{Script=Han}]{2,5}[縣市]\s+)?[\p{Script=Han}]{1,5}[區鄉鎮])(?=\S)/u, '$1 ')
+    .replace(/([路街](?:[一二三四五六七八九十百零〇\d]+段)?(?:\d+巷)?(?:\d+弄)?)(?=\d)/gu, '$1 ')
+    .replace(/(\d+(?:[之-]\d+)?)號/gu, '$1').replace(/\s+/g, ' ').trim();
 }
 const same = (a: GeoPoint, b: GeoPoint): boolean => Math.abs(a.lat - b.lat) + Math.abs(a.lon - b.lon) < 1e-7;
 function joinRings(parts: GeoPoint[][]): GeoPoint[][] {

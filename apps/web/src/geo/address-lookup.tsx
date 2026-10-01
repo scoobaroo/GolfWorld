@@ -75,7 +75,7 @@ export function AddressLookup({ disabled, onSelect }: { disabled: boolean; onSel
     <div className="address-search-row">
       <div className="row"><input id={`${id}-input`} ref={input} type="search" role="combobox" autoComplete="off" spellCheck={false}
         aria-autocomplete="list" aria-expanded={visible} aria-controls={listId} aria-activedescendant={visible && active >= 0 ? `${listId}-${active}` : undefined}
-        aria-describedby={`${id}-hint`} placeholder="Street address, city, or golf course" value={query} maxLength={180} disabled={disabled}
+        aria-describedby={`${id}-hint`} placeholder={country === 'TW' ? '台北市信義區信義路五段7號' : country === 'CA' ? '333 Main Street, Winnipeg' : 'Street address, city, or golf course'} value={query} maxLength={180} disabled={disabled}
         onChange={(event) => { changed(); setQuery(event.target.value); }}
         onFocus={() => { if (valid && !disabled) { setDismissed(false); setOpen(true); } }}
         onCompositionStart={() => { controller.current?.abort(); setComposing(true); }} onCompositionEnd={() => setComposing(false)}
@@ -107,7 +107,7 @@ export function AddressLookup({ disabled, onSelect }: { disabled: boolean; onSel
         {status === 'ready' && !!results.length && <p role="status" className="address-dropdown-hint">{results.length} matches. Select a place to travel.</p>}
       </div>}
     </div>
-    <p id={`${id}-hint`} className="address-input-hint">Type to find places. Choose a match to travel.</p>
+    <p id={`${id}-hint`} className="address-input-hint">{country === 'TW' ? 'Taiwan: Traditional Chinese addresses, such as 台北市信義區信義路五段7號.' : country === 'CA' ? 'Canada: street number, street and city, such as 333 Main Street, Winnipeg.' : 'USA, Canadian and Taiwanese addresses. Choose a match to travel.'}</p>
     <label className="map-country">Search region<select aria-label="Search region" value={country} disabled={disabled} onChange={(event) => { changed(); setCountry(event.target.value); }}><option value="all">USA, Canada & Taiwan</option><option value="CA">Canada</option><option value="US">USA</option><option value="TW">Taiwan</option></select></label>
   </form>;
 }

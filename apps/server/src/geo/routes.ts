@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { geoPointSchema, type Destination, type Neighborhood } from '@golfworld/shared';
-import { neighborhoodQuery, parseNeighborhood, parseSearch } from './data';
+import { addressSearchQuery, neighborhoodQuery, parseNeighborhood, parseSearch } from './data';
 
 export function createGeoRoutes(fetcher: typeof fetch = fetch): Hono {
   const routes = new Hono();
@@ -19,11 +19,11 @@ export function createGeoRoutes(fetcher: typeof fetch = fetch): Hono {
     nextSearch = Date.now() + 1100;
     try {
       const url = new URL(process.env.GEOCODER_URL ?? 'https://photon.komoot.io/api/');
-      url.searchParams.set('q', query); url.searchParams.set('limit', '12');
+      url.searchParams.set('q', addressSearchQuery(query, country)); url.searchParams.set('limit', '12');
       for (const code of country === 'all' ? ['US', 'CA', 'TW'] : [country]) url.searchParams.append('countrycode', code);
       const response = await fetcher(url, { headers, signal: AbortSignal.timeout(12000) });
       if (!response.ok) throw new Error('Search provider unavailable');
-      const results = parseSearch(await response.json());
+      const results = parseSearch(await response.json()).filter((place) => country === 'all' || place.country === country);
       if (searches.size >= 100) searches.delete(searches.keys().next().value!);
       searches.set(key, { time: Date.now(), data: results });
       return c.json({ results, source: 'OpenStreetMap / Photon' });
