@@ -9,7 +9,7 @@ test('production world and phone load offline after a cached visit', async ({ pa
   await page.waitForFunction(async () => {
     const cache = await caches.open('golfworld-v1');
     const resources = performance.getEntriesByType('resource').map((entry) => entry.name).filter((name) => name.includes('/assets/'));
-    return resources.length > 2 && (await Promise.all(resources.map((name) => cache.match(name)))).every(Boolean);
+    return resources.length > 2 && Boolean(await cache.match('/models/golfer.glb')) && (await Promise.all(resources.map((name) => cache.match(name)))).every(Boolean);
   });
   const manifest = await context.request.get('/manifest.webmanifest');
   expect(await manifest.json()).toMatchObject({ display: 'standalone' });
@@ -20,5 +20,6 @@ test('production world and phone load offline after a cached visit', async ({ pa
   await page.getByRole('button', { name: 'Phone', exact: false }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your appearance' })).toBeVisible();
+  await expect(page.getByRole('img', { name: '3D preview of your avatar; drag to turn' }).locator('canvas')).toBeVisible();
   expect(errors).toEqual([]);
 });

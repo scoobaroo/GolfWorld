@@ -14,7 +14,9 @@ export class GolfCameraRig {
     const heading = !atRest && shot
       ? shot.heading + clamp(shot.face, -1, 1) * 0.13
       : Math.atan2(COURSE.cup[0] - ball.x, ball.z - COURSE.cup[2]) + aim;
-    this.position.set(ball.x - Math.sin(heading) * 13, Math.max(7, ball.y + 6), ball.z + Math.cos(heading) * 13);
+    const distance = atRest ? 7.5 : 13;
+    const height = atRest ? 4.2 : Math.max(7, ball.y + 6);
+    this.position.set(ball.x - Math.sin(heading) * distance, height, ball.z + Math.cos(heading) * distance);
     this.target.set(ball.x + Math.sin(heading) * 2, ball.y + 0.3, ball.z - Math.cos(heading) * 2);
     if (!this.initialized) {
       camera.getWorldDirection(this.focus).multiplyScalar(13).add(camera.position);

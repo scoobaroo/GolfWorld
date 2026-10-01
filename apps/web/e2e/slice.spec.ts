@@ -46,6 +46,12 @@ test('guest can open phone, save settings, arrange a lot, and swing', async ({ p
   await page.getByRole('button', { name: 'Phone', exact: false }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByLabel('Shirt color')).toHaveValue('#1267ab');
+  const preview = page.getByRole('img', { name: '3D preview of your avatar; drag to turn' });
+  await expect(preview.locator('canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Full body', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Full body', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Face', exact: true }).click();
+  await preview.scrollIntoViewIfNeeded();
   await page.screenshot({ path: testInfo.outputPath('appearance.png') });
   await page.getByRole('button', { name: 'Close phone' }).click();
   await page.getByRole('button', { name: 'Home', exact: true }).click(); await expect(page.getByText('1/40 pieces')).toBeVisible();
@@ -84,6 +90,36 @@ test('desktop keyboard opens and closes the phone', async ({ page }, testInfo) =
   test.skip(testInfo.project.name !== 'desktop-chromium');
   await ready(page); await page.keyboard.press('p'); await expect(page.getByRole('dialog', { name: 'In-world phone' })).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).not.toBeVisible();
+});
+
+test('rigged golfer rests naturally and animates while walking', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium');
+  await ready(page);
+  const pose = async (): Promise<{ resting: boolean; z: number; foot: number }> => page.evaluate(async () => {
+    const resource = performance.getEntriesByType('resource').find((entry) => entry.name.includes('/@react-three_fiber.js'));
+    if (!resource) throw new Error('Renderer missing');
+    const fiber = await import(resource.name);
+    const scene = fiber._roots.get(document.querySelector('canvas')).store.getState().scene;
+    const actor = scene.getObjectByName('golfer');
+    const position = actor.getWorldPosition(actor.position.clone());
+    const at = (name: string): { x: number; y: number; z: number } => {
+      const bone = actor.getObjectByName(name);
+      if (!bone) throw new Error(`Avatar bone missing: ${name}`);
+      return bone.getWorldPosition(bone.position.clone());
+    };
+    const left = at('mixamorigLeftHand'); const right = at('mixamorigRightHand');
+    return { resting: left.y < at('mixamorigLeftArm').y - 0.15 && right.y < at('mixamorigRightArm').y - 0.15,
+      z: position.z, foot: at('mixamorigLeftFoot').y };
+  });
+  await expect.poll(async () => (await pose()).resting).toBe(true);
+  const before = await pose();
+  await page.keyboard.down('w');
+  try {
+    await expect.poll(async () => (await pose()).z).toBeLessThan(before.z - 0.5);
+    await expect.poll(async () => Math.abs((await pose()).foot - before.foot)).toBeGreaterThan(0.025);
+    await page.screenshot({ path: testInfo.outputPath('walking.png') });
+  } finally { await page.keyboard.up('w'); }
+  await expect.poll(async () => (await pose()).resting).toBe(true);
 });
 
 async function playShot(page: Page, power: number): Promise<number> {

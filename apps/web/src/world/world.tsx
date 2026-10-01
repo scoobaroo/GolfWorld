@@ -2,16 +2,17 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Instances, Instance } from '@react-three/drei';
 import { RigidBody, CuboidCollider, CapsuleCollider, type RapierRigidBody } from '@react-three/rapier';
-import { Group, Vector3 } from 'three';
+import { DirectionalLight, Group, Vector3 } from 'three';
 import { clamp, COURSE } from '@golfworld/shared';
 import { useGame } from '../app/store';
 import { controls } from './input';
 import { HomeLot } from '../home/home-lot';
 import { GolfBall } from '../golf/golf-ball';
 import { GolfCameraRig } from '../golf/golf-camera';
+import { HumanAvatar, type AvatarMotion } from './human-avatar';
 
 function Block({ position, scale, color }: { position: [number, number, number]; scale: [number, number, number]; color: string }): ReactNode {
-  return <mesh position={position} scale={scale}><boxGeometry /><meshStandardMaterial color={color} /></mesh>;
+  return <mesh position={position} scale={scale} receiveShadow><boxGeometry /><meshStandardMaterial color={color} /></mesh>;
 }
 function Trees(): ReactNode {
   const trees = useMemo(() => Array.from({ length: 70 }, (_, index) => ({ x: index < 14 ? Math.cos(index * 1.8) * 42 : (index % 2 ? 40 : 151) + Math.sin(index * 2) * 6, z: index < 14 ? Math.sin(index * 1.8) * 40 + 8 : -(index - 14) * 7, scale: 1 + (index % 4) * 0.25 })), []);
@@ -30,29 +31,36 @@ function Avatar({ renderedBall }: { renderedBall: Vector3 }): ReactNode {
   const target = useMemo(() => new Vector3(), []);
   const cameraFocus = useMemo(() => new Vector3(0, 1.4, 5), []);
   const golfCamera = useMemo(() => new GolfCameraRig(), []);
+  const motion = useRef<AvatarMotion>({ speed: 0 });
   const position = useRef({ x: 0, y: 1, z: 9 });
   useEffect(() => {
     golfCamera.reset();
-    if (mode === 'hub') { position.current = { x: 0, y: 1, z: 9 }; body.current?.setTranslation(position.current, true); }
+    if (mode === 'hub') {
+      position.current = { x: 0, y: 1, z: 9 }; body.current?.setTranslation(position.current, true);
+      if (model.current) model.current.rotation.y = Math.PI;
+    }
   }, [mode, golfCamera]);
-  useFrame(({ camera, clock }, delta) => {
+  useFrame(({ camera }, delta) => {
     const state = useGame.getState();
     const ball = state.ball;
     const step = Math.min(delta, 0.04);
+    motion.current.speed = 0;
     if (state.mode === 'hub' && !state.phoneOpen) {
       const keys = controls.keys;
       let forward = controls.z + (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
       let side = controls.x + (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
       const length = Math.max(1, Math.hypot(side, forward)); forward /= length; side /= length;
-      const moveX = (side * Math.cos(controls.yaw) - forward * Math.sin(controls.yaw)) * step * 5;
-      const moveZ = (-forward * Math.cos(controls.yaw) - side * Math.sin(controls.yaw)) * step * 5;
+      const moveX = (side * Math.cos(controls.yaw) - forward * Math.sin(controls.yaw)) * step * 2.2;
+      const moveZ = (-forward * Math.cos(controls.yaw) - side * Math.sin(controls.yaw)) * step * 2.2;
       const nextX = clamp(position.current.x + moveX, -42, 150);
       const nextZ = clamp(position.current.z + moveZ, -375, 40);
-      if (!(nextX > -10 && nextX < 10 && nextZ > -26 && nextZ < -13)) { position.current.x = nextX; position.current.z = nextZ; }
+      const blocked = nextX > -10 && nextX < 10 && nextZ > -26 && nextZ < -13;
+      if (!blocked) { position.current.x = nextX; position.current.z = nextZ; motion.current.speed = step > 0 ? Math.hypot(moveX, moveZ) / step : 0; }
       body.current?.setNextKinematicTranslation(position.current);
       if (model.current && Math.abs(moveX) + Math.abs(moveZ) > 0.001) {
-        model.current.rotation.y = Math.atan2(moveX, moveZ);
-        model.current.position.y = Math.sin(clock.elapsedTime * 12) * 0.045;
+        const heading = Math.atan2(moveX, moveZ);
+        const difference = Math.atan2(Math.sin(heading - model.current.rotation.y), Math.cos(heading - model.current.rotation.y));
+        model.current.rotation.y += difference * (1 - Math.exp(-delta * 12));
       }
     }
     if (state.mode === 'golf') {
@@ -71,7 +79,7 @@ function Avatar({ renderedBall }: { renderedBall: Vector3 }): ReactNode {
       golfCamera.update(camera, state.ballAtRest ? cameraPosition.set(...ball) : renderedBall, state.shot, state.ballAtRest, state.aim, delta);
       return;
     } else {
-      cameraPosition.set(position.current.x + Math.sin(controls.yaw) * 13, 5 + controls.pitch * 7, position.current.z + Math.cos(controls.yaw) * 13);
+      cameraPosition.set(position.current.x + Math.sin(controls.yaw) * 6.5, 3 + controls.pitch * 4, position.current.z + Math.cos(controls.yaw) * 6.5);
       target.set(position.current.x - Math.sin(controls.yaw) * 4, 1.4, position.current.z - Math.cos(controls.yaw) * 4);
     }
     const blend = 1 - Math.exp(-Math.min(delta, 0.1) * 8);
@@ -79,13 +87,24 @@ function Avatar({ renderedBall }: { renderedBall: Vector3 }): ReactNode {
   });
   return <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, 1, 9]}><CapsuleCollider args={[0.5, 0.3]} />
     <group ref={model} name="golfer">
-      <mesh position={[0, 0.35, 0]}><capsuleGeometry args={[0.28, 0.55, 4, 8]} /><meshStandardMaterial color={appearance.shirtColor} /></mesh>
-      <mesh position={[0, 0.98, 0]}><sphereGeometry args={[0.24, 12, 8]} /><meshStandardMaterial color={appearance.skinColor} /></mesh>
-      <Block position={[0, 1.16, 0.03]} scale={[0.56, 0.12, 0.5]} color={appearance.hatColor} />
-      <Block position={[-0.15, -0.5, 0]} scale={[0.2, 0.7, 0.25]} color={appearance.pantsColor} /><Block position={[0.15, -0.5, 0]} scale={[0.2, 0.7, 0.25]} color={appearance.pantsColor} />
-      {phoneOpen && <group position={[0.42, 0.45, 0.3]} rotation={[-0.5, 0, 0]}><Block position={[0, 0, 0]} scale={[0.18, 0.34, 0.025]} color="#153e33" /><Block position={[0, 0, 0.017]} scale={[0.14, 0.28, 0.01]} color="#bce3d0" /></group>}
+      <HumanAvatar appearance={appearance} phoneOpen={phoneOpen} motion={motion} />
     </group>
   </RigidBody>;
+}
+function Daylight({ renderedBall }: { renderedBall: Vector3 }): ReactNode {
+  const light = useRef<DirectionalLight>(null);
+  const center = useMemo(() => new Vector3(), []);
+  const offset = useMemo(() => new Vector3(14, 28, 18), []);
+  useFrame(({ camera, scene }) => {
+    if (!light.current) return;
+    const state = useGame.getState();
+    if (state.mode === 'hub') scene.getObjectByName('golfer')?.getWorldPosition(center);
+    else center.copy(state.mode === 'golf' ? renderedBall : camera.position);
+    center.y = 0;
+    light.current.position.copy(center).add(offset);
+    light.current.target.position.copy(center); light.current.target.updateMatrixWorld();
+  });
+  return <directionalLight ref={light} intensity={2.2} castShadow shadow-mapSize={[512, 512]} shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={12} shadow-camera-bottom={-12} shadow-camera-near={1} shadow-camera-far={75} shadow-normalBias={0.015} shadow-bias={-0.0001} />;
 }
 export function World(): ReactNode {
   const ready = useRef(false);
@@ -93,11 +112,11 @@ export function World(): ReactNode {
   useFrame(() => { if (!ready.current) { ready.current = true; useGame.setState({ worldReady: true }); } });
   return <>
     <color attach="background" args={['#c6e0d7']} /><fog attach="fog" args={['#c6e0d7', 180, 550]} />
-    <ambientLight intensity={1.1} /><hemisphereLight args={['#fff4df', '#51704c', 1.6]} /><directionalLight position={[50, 90, 20]} intensity={2.2} />
+    <ambientLight intensity={0.3} /><hemisphereLight args={['#fff4df', '#51704c', 0.9]} /><Daylight renderedBall={renderedBall} />
     <RigidBody type="fixed" colliders={false}><CuboidCollider args={[300, 0.5, 400]} position={[0, -0.5, -170]} friction={0.7} restitution={0.1} />
       <Block position={[0, -0.51, -170]} scale={[600, 1, 800]} color="#659963" />
     </RigidBody>
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}><circleGeometry args={[36, 48]} /><meshStandardMaterial color="#84af77" /></mesh>
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}><circleGeometry args={[36, 48]} /><meshStandardMaterial color="#84af77" /></mesh>
     <Block position={[0, 0.03, -6]} scale={[7, 0.05, 26]} color="#d6cbb0" />
     <Block position={[40, 0.025, 12]} scale={[80, 0.04, 4]} color="#d6cbb0" />
     <RigidBody type="fixed" colliders="cuboid"><Block position={[0, 3, -20]} scale={[18, 6, 10]} color="#ede4cd" /></RigidBody>
@@ -106,7 +125,7 @@ export function World(): ReactNode {
     {[-6, 6].map((x) => <Block key={x} position={[x, 2.8, -14.9]} scale={[3, 2.8, 0.12]} color="#a5c5ba" />)}
     <Block position={[90, 0.02, -167]} scale={[36, 0.035, 364]} color="#8db675" />
     {Array.from({ length: 11 }, (_, index) => <Block key={index} position={[90, 0.045, -index * 32]} scale={[36, 0.02, 16]} color="#95bc7b" />)}
-    <mesh position={[90, 0.07, COURSE.cup[2]]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[13, 48]} /><meshStandardMaterial color="#aec987" /></mesh>
+    <mesh receiveShadow position={[90, 0.07, COURSE.cup[2]]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[13, 48]} /><meshStandardMaterial color="#aec987" /></mesh>
     <Block position={[128, 0.055, -190]} scale={[36, 0.035, 64]} color="#70b7c3" />
     <mesh position={[COURSE.cup[0], 0.085, COURSE.cup[2]]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[COURSE.cupRadius, 24]} /><meshBasicMaterial color="#203d2d" /></mesh>
     <mesh position={[90, 1.7, COURSE.cup[2]]}><cylinderGeometry args={[0.035, 0.035, 3.4, 8]} /><meshStandardMaterial color="#f9f4de" /></mesh>

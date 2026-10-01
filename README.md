@@ -35,7 +35,7 @@ and full PWA behavior; ordinary guest play works over LAN HTTP.
 | Close phone | Esc or close button | Close button or swipe down from phone top |
 | Move between areas | Hub / Home / Golf buttons | Same touch controls |
 | Set your name and invert Y | Phone → Settings | Same |
-| Set your appearance | Phone → Settings → Your appearance | Same color controls |
+| Set your appearance | Phone → Settings → Your appearance; Face / Full body preview, drag to turn | Same touch preview and color controls |
 | Place furniture | Home → choose a piece → click the lot pad | Choose a piece → tap the pad |
 | Move / rotate furniture | Select and drag; Rotate 90° | Select and drag; Rotate 90° |
 | Swing | Hold mouse or Space, release, then tap/press at meter center | Hold Swing, release, then tap at center |
@@ -84,9 +84,11 @@ pnpm test:e2e
 pnpm test:pwa        # production build + cached offline visit
 ```
 
-Tests exercise desktop Chromium and 390×844 touch Chromium/WebKit, profile and
-layout persistence, swing input, scoring, and complete Rapier ball flights.
-WebKit emulation is not a substitute for a physical iPhone performance check.
+Tests exercise desktop Chromium, Android phone Chromium, iPhone WebKit, and iPad
+WebKit emulation. They cover profile and layout persistence, the 3D appearance
+preview, natural idle/walk poses, touch swings, scoring, and complete Rapier ball
+flights. Emulation is not a substitute for performance checks on physical phones
+and tablets.
 For this session's downloaded browsers, set
 `PLAYWRIGHT_BROWSERS_PATH=/private/tmp/golfworld-browsers` before browser tests;
 a normal Playwright installation uses its default cache instead.
@@ -114,7 +116,10 @@ checkout route or checkout action at either value.
 
 - 1 world unit = 1 meter; gravity is 9.81 m/s². Yards are display-only.
 - React 19/Vite, R3F/Three/Drei/Rapier, Zustand, and Tailwind v4 are the only
-  client renderer/state/style systems. Source art is primitive blockout.
+  client renderer/state/style systems. The environment remains blockout; the
+  starter golfer uses a smooth, textured Mixamo character with blended idle and
+  walking animations. It remains stylized; this is not GTA 6 visual parity.
+  [Asset credits](docs/avatar-assets.md) and [visual roadmap](docs/visual-quality.md).
 - Local Rapier uses a regulation-radius collider with an enlarged visual ball,
   CCD, fixed 60 Hz stepping, per-surface friction/restitution and drag, and a
   forgiving 22 cm cup radius for this practice slice. The avatar is kinematic.

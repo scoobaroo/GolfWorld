@@ -23,7 +23,9 @@ export function Swing(): ReactNode {
     timer.current.phase = 'face'; timer.current.start = performance.now(); setPhase('face');
   };
   const fire = (): void => {
-    const { power, face } = timer.current;
+    const { power, start } = timer.current;
+    // Sample input time directly: a slow render must not use a stale meter frame.
+    const face = clamp((performance.now() - start) / 650 - 1, -1, 1);
     timer.current.phase = 'idle'; setPhase('idle'); setMeter(0); useGame.getState().hit(power, face);
   };
   useEffect(() => {
