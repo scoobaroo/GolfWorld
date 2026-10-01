@@ -6,6 +6,21 @@ async function ready(page: Page): Promise<void> {
   await expect(page.locator('canvas')).toBeVisible();
   await expect(page.locator('main')).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
 }
+async function golferAtBall(page: Page): Promise<void> {
+  // Inspect the real rendered scene, so HUD text alone cannot pass this check.
+  await expect.poll(async () => page.evaluate(async () => {
+    const resource = performance.getEntriesByType('resource').find((entry) => entry.name.includes('/@react-three_fiber.js'));
+    if (!resource) throw new Error('R3F renderer was not loaded');
+    const fiber = await import(resource.name);
+    const scene = fiber._roots.get(document.querySelector('canvas'))?.store.getState().scene;
+    const golfer = scene?.getObjectByName('golfer'); const ball = scene?.getObjectByName('golf-ball');
+    if (!golfer || !ball || !golfer.visible) return false;
+    const person = golfer.getWorldPosition(golfer.position.clone());
+    const lie = ball.getWorldPosition(ball.position.clone());
+    const distance = Math.hypot(person.x - lie.x, person.z - lie.z);
+    return distance > 1 && distance < 2;
+  })).toBe(true);
+}
 test('guest can open phone, save settings, arrange a lot, and swing', async ({ page }, testInfo) => {
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await ready(page);
@@ -56,6 +71,12 @@ test('guest can open phone, save settings, arrange a lot, and swing', async ({ p
   await expect(page.getByRole('button', { name: 'Ball in motion…' })).toBeVisible();
   await expect(page.locator('.stroke-count b')).toHaveText('1');
   await expect(page.getByRole('button', { name: 'Hold to swing' })).toBeVisible({ timeout: 30_000 });
+  await golferAtBall(page);
+  await page.locator('.hole-card summary').click();
+  await expect(page.getByRole('table', { name: 'Meadow Run scorecard' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Stroke log' }).getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByRole('list', { name: 'Stroke log' })).toContainText('Driver');
+  await expect(page.locator('.scorecard summary')).toContainText('Next: stroke 2');
   expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('golf.png') });
 });
@@ -65,7 +86,7 @@ test('desktop keyboard opens and closes the phone', async ({ page }, testInfo) =
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
-async function playShot(page: Page, power: number): Promise<void> {
+async function playShot(page: Page, power: number): Promise<number> {
   const button = page.locator('.swing-button');
   const bounds = await button.boundingBox();
   if (!bounds) throw new Error('Swing control missing');
@@ -77,21 +98,33 @@ async function playShot(page: Page, power: number): Promise<void> {
   await page.waitForTimeout(610); await page.mouse.down(); await page.mouse.up();
   await expect(button).toHaveText('Ball in motion…');
   await expect(page.getByRole('button', { name: 'Hold to swing' }).or(page.getByRole('button', { name: 'Play another round' }))).toBeVisible({ timeout: 30_000 });
+  await golferAtBall(page);
+  const log = await page.locator('.scorecard ol li').last().textContent();
+  return Number(/(\d+)% power/.exec(log ?? '')?.[1] ?? 0) / 100;
 }
 test('plays a complete hole through the UI and saves the score', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium');
   test.setTimeout(180_000);
   await ready(page);
   await page.getByRole('button', { name: 'Golf', exact: true }).click();
+  let inputDelayPower = 0;
   for (let shotIndex = 0; shotIndex < 12; shotIndex++) {
     if (await page.getByRole('button', { name: 'Play another round' }).isVisible()) break;
     const distance = Number(await page.locator('.swing-panel .lie').getAttribute('data-distance'));
     const club = distance > 200 ? 'Driver' : distance > 12 ? '7-iron' : 'Putter';
     await page.getByRole('button', { name: club, exact: true }).click();
     const power = club === 'Driver' ? 1 : Math.min(1, Math.sqrt(distance / (club === '7-iron' ? 125 : 18)));
-    await playShot(page, power);
+    // Native mouse commands have transport delay, especially with traced software
+    // rendering. Learn that delay from the displayed shot log for short putts.
+    const requestedPower = Math.max(0.025, power - inputDelayPower);
+    const actualPower = await playShot(page, requestedPower);
+    if (actualPower < 1) inputDelayPower = Math.max(0, actualPower - requestedPower);
   }
   await expect(page.getByRole('button', { name: 'Play another round' })).toBeVisible();
+  await page.locator('.round-complete summary').click();
+  const card = page.getByRole('table', { name: 'Meadow Run scorecard' });
+  await expect(card).toBeVisible();
+  await expect(card.locator('tbody td').nth(1)).toHaveText(await page.locator('.round-number').evaluate((node) => node.childNodes[0].textContent ?? ''));
   await page.screenshot({ path: testInfo.outputPath('hole-out.png') });
   await page.getByRole('button', { name: 'Open phone & scores' }).click();
   await page.getByRole('button', { name: 'Scores', exact: true }).click();

@@ -4,6 +4,7 @@ import { useGame } from '../app/store';
 import { controls } from '../world/input';
 import { HomeEditor } from '../home/home-editor';
 import { Swing } from '../golf/swing';
+import { Scorecard } from '../golf/scorecard';
 import { Icon } from './icons';
 
 function Joystick(): ReactNode {
@@ -34,13 +35,13 @@ export function Hud(): ReactNode {
       {mode === 'hub' && <section className="welcome panel"><span className="eyebrow">A LITTLE PLACE TO PLAY</span><h1>Good days<br />start on the green.</h1><p>Take a walk. Make yourself at home.<br />There’s a round waiting just over there.</p><button className="primary" onClick={() => useGame.getState().setMode('golf')}>Play Meadow Run <Icon name="arrow" size={18} /></button><div className="welcome-meta"><span>01 HOLE</span><span>PAR 4</span><span>380 YD</span></div></section>}
       {mode === 'home' && <HomeEditor />}
       {mode === 'golf' && !complete && <>
-        <section className="hole-card panel"><div><span className="eyebrow">HOLE 01 · PAR {COURSE.par}</span><h2>Meadow Run</h2><small>380 yards · local practice</small></div><div className="stroke-count"><b>{strokes}</b><span>STROKES</span></div></section>
+        <section className="hole-card panel"><div className="row-between"><div><span className="eyebrow">HOLE 01 · PAR {COURSE.par}</span><h2>Meadow Run</h2><small>380 yards · local practice</small></div><div className="stroke-count"><b>{strokes}</b><span>STROKES</span></div></div><Scorecard /></section>
         <Swing />
       </>}
       {(notice || storageError) && <div className="notice" role="status">{storageError ? 'Browser storage is unavailable. This session will not survive a reload.' : notice}</div>}
       {mode === 'hub' && <><Joystick /><div className="desktop-controls"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>move · drag to look</span></div></>}
       <nav className="world-nav" aria-label="World destinations"><button className={mode === 'hub' ? 'active' : ''} onClick={() => useGame.getState().setMode('hub')}><Icon name="map" />Hub</button><button className={mode === 'home' ? 'active' : ''} onClick={() => useGame.getState().setMode('home')}><Icon name="home" />Home</button><button className={mode === 'golf' ? 'active' : ''} onClick={() => useGame.getState().setMode('golf')}><Icon name="flag" />Golf</button><button onClick={() => useGame.getState().togglePhone(true)}><Icon name="phone" />Phone <kbd>P</kbd></button></nav>
-      {complete && mode === 'golf' && <div className="modal-backdrop"><section className="round-complete panel" role="dialog" aria-modal="true" aria-labelledby="round-title"><span className="completion-icon"><Icon name="flag" size={34} /></span><span className="eyebrow">MEADOW RUN · HOLE COMPLETE</span><h1 id="round-title">{scoreLabel(complete.strokes)}.</h1><p>{complete.name}, you’re on the board.</p><div className="round-number">{complete.strokes}<small>strokes / par 4</small></div><button className="primary" autoFocus onClick={() => useGame.getState().resetRound()}>Play another round</button><button onClick={() => useGame.getState().togglePhone(true)}>Open phone & scores</button></section></div>}
+      {complete && mode === 'golf' && <div className="modal-backdrop"><section className="round-complete panel" role="dialog" aria-modal="true" aria-labelledby="round-title"><span className="completion-icon"><Icon name="flag" size={34} /></span><span className="eyebrow">MEADOW RUN · HOLE COMPLETE</span><h1 id="round-title">{scoreLabel(complete.strokes)}.</h1><p>{complete.name}, you’re on the board.</p><div className="round-number">{complete.strokes}<small>strokes / par 4</small></div><Scorecard /><button className="primary" autoFocus onClick={() => useGame.getState().resetRound()}>Play another round</button><button onClick={() => useGame.getState().togglePhone(true)}>Open phone & scores</button></section></div>}
     </>}
   </div>;
 }

@@ -48,7 +48,11 @@ Golf offers Driver, 7-iron, and Putter. Aim defaults toward the cup; the Aim
 slider offsets that direction. Hold about 1.2 seconds for full power, release
 to start the face meter, then tap near its center. If you wait, the meter
 automatically strikes with the resulting face error. Wait for the ball to
-settle before your next shot. Use the driver for distance, the iron for
+settle before your next shot; your golfer moves beside the new lie automatically.
+The flight camera follows the ball without turning back toward the cup mid-shot.
+Open **Scorecard** on the hole panel for par, stroke count, and a shot/penalty log;
+the final score against par appears on hole-out. The live card is also in Phone → Scores.
+Use the driver for distance, the iron for
 approaches, and the putter on the green. Try aiming toward the blue pond or
 outside the course: the ball drops at the last lie and adds one penalty.
 

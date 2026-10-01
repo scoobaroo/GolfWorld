@@ -1,11 +1,14 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { BallCollider, RigidBody, useBeforePhysicsStep, type RapierRigidBody, type RapierCollider } from '@react-three/rapier';
 import { Line } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { type Mesh, type Vector3 } from 'three';
 import { COURSE, shotVelocity, isHoled, surfaceAt, surfaceMaterial, groundVelocity, type Vec3, type Surface } from '@golfworld/shared';
 import { useGame } from '../app/store';
 
-export function GolfBall(): ReactNode {
+export function GolfBall({ renderedPosition }: { renderedPosition: Vector3 }): ReactNode {
   const body = useRef<RapierRigidBody>(null);
+  const mesh = useRef<Mesh>(null);
   const collider = useRef<RapierCollider>(null);
   const lastSurface = useRef<Surface | null>(null);
   const round = useGame((state) => state.round);
@@ -34,6 +37,9 @@ export function GolfBall(): ReactNode {
     body.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
     settledTicks.current = 0;
   }, [shot]);
+  // Rapier interpolates the mesh at priority -2; sample it before the camera at 0.
+  // The 10 Hz store updates remain for HUD text, never for camera movement.
+  useFrame(() => { mesh.current?.getWorldPosition(renderedPosition); }, -1);
   useBeforePhysicsStep(() => {
     const state = useGame.getState();
     if (!body.current || state.mode !== 'golf' || state.complete || state.ballAtRest) return;
@@ -54,6 +60,7 @@ export function GolfBall(): ReactNode {
       state.penalty(); state.updateBall([...lie], true); return;
     }
     if (isHoled(current, speed)) {
+      body.current.setTranslation({ x: COURSE.cup[0], y: 0.04, z: COURSE.cup[2] }, true);
       body.current.setLinvel({ x: 0, y: 0, z: 0 }, true); body.current.setAngvel({ x: 0, y: 0, z: 0 }, true);
       state.updateBall([COURSE.cup[0], 0.04, COURSE.cup[2]], true); state.finish(); return;
     }
@@ -72,7 +79,7 @@ export function GolfBall(): ReactNode {
   return <>
     <RigidBody ref={body} colliders={false} position={COURSE.tee} ccd enabledRotations={[false, false, false]} linearDamping={0.02} restitution={0.12} friction={0.7}>
       <BallCollider ref={collider} args={[COURSE.ballRadius]} mass={0.0459} friction={surfaceMaterial.fairway.friction} restitution={surfaceMaterial.fairway.restitution} />
-      <mesh visible={mode === 'golf'}><sphereGeometry args={[0.11, 12, 8]} /><meshStandardMaterial color="#fffef5" /></mesh>
+      <mesh ref={mesh} name="golf-ball" visible={mode === 'golf'}><sphereGeometry args={[0.11, 12, 8]} /><meshStandardMaterial color="#fffef5" /></mesh>
     </RigidBody>
     {mode === 'golf' && ballAtRest && !phoneOpen && <>
       <mesh position={[ball[0], 0.12, ball[2]]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.4, 0.5, 32]} /><meshBasicMaterial color="#fff9de" /></mesh>
