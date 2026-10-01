@@ -59,14 +59,21 @@ This works from another phone on the same LAN without pointing that phone's
 API requests at its own localhost. Production hosting must route `/api` to
 Hono or set an explicit API URL.
 
-- `GEOCODER_URL`: Photon-compatible search endpoint. Local default is
+- Google Places UI Kit is now the default picker. Set
+  `VITE_GOOGLE_MAPS_API_KEY` with Maps JavaScript API + Places UI Kit enabled,
+  and restart Vite. Only Map loads the SDK; no device GPS is sent for search.
+  Google selections are session-only and do not restore after reload.
+- `GEOCODER_URL`: Photon-compatible search endpoint for the explicitly selected
+  `VITE_ADDRESS_SEARCH_PROVIDER=photon` keyless mode. Its default is
   `https://photon.komoot.io/api/`. Country filters are sent to the provider and
   results are validated/filtered again. Suggestions require at least three
   characters and a 1.2-second typing pause; explicit Search bypasses that pause.
   The client spaces outbound requests at least 1.15 seconds apart, cancels old
   queries, ignores stale responses and caches up to 20 results during the map
   session. The server allows one outbound search per 1.1 seconds and maintains
-  a bounded result cache. No search-history persistence or device-location permission.
+  a bounded result cache. Search has no history persistence or GPS requirement;
+  the foreground world separately requests GPS once and offers an off switch in
+  Phone → Settings.
 - `GEODATA_URL`: Overpass-compatible interpreter endpoint. Local default is
   `https://overpass-api.de/api/interpreter`. Numeric bounded queries only,
   one request at a time, five-second minimum spacing, 20-second query budget,
@@ -91,6 +98,10 @@ No provider guarantees every street address, building footprint/type/height,
 or golf course in these regions. Missing data is not replaced with invented
 addresses or fabricated geographic buildings. An empty region and service
 failure remain visibly distinct.
+
+The Google search integration and deferred scenery decision are recorded in
+[Google Maps notes](google-maps-review.md). Live search needs a configured key;
+`GEOCODER_URL` continues to accept Photon format only.
 
 ## Verification and next work
 

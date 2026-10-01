@@ -1,12 +1,17 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import type { Destination } from '@golfworld/shared';
+import type { Destination, GeoPoint } from '@golfworld/shared';
 import { Icon } from '../ui/icons';
 import { searchPlaces } from './client';
 import { placeType } from './place-type';
+import { GoogleAddressLookup } from './google-address-lookup';
+import { ADDRESS_SEARCH_PROVIDER } from './google-places';
 
 const countryNames = { CA: 'Canada', US: 'USA', TW: 'Taiwan' };
 
-export function AddressLookup({ disabled, onSelect }: { disabled: boolean; onSelect: (place: Destination) => void }): ReactNode {
+export function AddressLookup(props: { disabled: boolean; onSelect: (place: Destination) => void; center: GeoPoint }): ReactNode {
+  return ADDRESS_SEARCH_PROVIDER === 'photon' ? <PhotonAddressLookup {...props} /> : <GoogleAddressLookup {...props} />;
+}
+function PhotonAddressLookup({ disabled, onSelect }: { disabled: boolean; onSelect: (place: Destination) => void }): ReactNode {
   const id = useId(); const listId = `${id}-suggestions`;
   const [query, setQuery] = useState(''); const [country, setCountry] = useState('all');
   const [results, setResults] = useState<Destination[]>([]);
@@ -99,7 +104,7 @@ export function AddressLookup({ disabled, onSelect }: { disabled: boolean; onSel
             return <li key={place.id} id={`${listId}-${index}`} role="option" aria-selected={active === index}
               onMouseDown={(event) => event.preventDefault()} onPointerMove={(event) => { if (event.pointerType === 'mouse') setActive(index); }} onClick={() => choose(place)}>
               <span className={`address-place-icon place-${type.tone}`} data-place-icon={type.icon}><Icon name={type.icon} size={23} /></span>
-              <span className="address-place-text"><strong>{place.name}</strong><small>{place.address}</small><span className="address-place-type">{type.label} · {countryNames[place.country]}{place.precision === 'address' ? ' · Address' : ''}</span></span>
+              <span className="address-place-text"><strong>{place.name}</strong><small>{place.address}</small><span className="address-place-type">{type.label} · {place.country ? countryNames[place.country] : 'Location'}{place.precision === 'address' ? ' · Address' : ''}</span></span>
               <span className="address-travel-arrow"><Icon name="arrow" size={16} /></span>
             </li>;
           })}

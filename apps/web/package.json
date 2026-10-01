@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:google": "playwright test --config playwright.google.config.ts",
     "test:pwa": "pnpm build && playwright test --config playwright.pwa.config.ts"
   },
   "dependencies": {

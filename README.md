@@ -27,6 +27,16 @@ or Chrome; Vite prints the network URL. Allow local-network access if your
 browser asks. An HTTPS deployment or localhost is needed for service workers
 and full PWA behavior; ordinary guest play works over LAN HTTP.
 
+Address suggestions now use **Google Places UI Kit**. Create a project in the
+[Google Cloud Console](https://console.cloud.google.com/), attach billing, enable
+**Maps JavaScript API** and **Places UI Kit**, and create a browser key restricted
+to your development/production origins and those APIs. Copy `.env.example` to
+the root `.env`, set `VITE_GOOGLE_MAPS_API_KEY`, then restart `pnpm dev`. Do not
+commit the key. Google requires internet access; without a key the map explains
+that address search is not configured. Guest golf/home/capture remain available.
+For an explicit keyless local alternative set `VITE_ADDRESS_SEARCH_PROVIDER=photon`.
+See [Google integration notes](docs/google-maps-review.md) for setup and limits.
+
 ## Try the slice
 
 | Action | Desktop | Phone |
@@ -76,15 +86,20 @@ road widths can be estimates, terrain is flat, and data coverage varies;
 this is not an exact visual reconstruction of every address/building.
 Canadian street addresses and Traditional Chinese Taiwanese addresses use the
 same lookup. Select Canada or Taiwan to narrow matches. Try
-`台北市信義區信義路五段7號`; the API splits city/district/street/house number
-for the geocoder and displays the Taiwanese street number after the street.
-Repeated map objects and segments of one street in one city produce one
-suggestion; distinct businesses and different house numbers remain separate.
+`River Springs Dr` or `台北市信義區信義路五段7號`. Google's widget owns its
+suggestions, ranking and attribution. Selected places resolve through a visible
+Google details card and enter the existing WGS84 travel flow. Google selections
+are session-only: reload returns to Meadow, and provider names/addresses are not
+copied into world saves or capture exports. For captures, choose an independently
+mapped building, your device GPS, or a pin you place on the open-data map.
+Photon mode additionally normalizes Taiwanese addresses and removes repeated
+map objects/street segments while retaining distinct tenants and house numbers.
 Tap/click a building for its mapped type, address, and height.
 Real-world courses can be visited; playable golf remains Meadow Run.
 See [geography implementation and Grok handoff](docs/geography-handoff.md)
-for providers, limits, and follow-up work. Local defaults need no API key;
-public launch needs dedicated world-data infrastructure.
+for providers, limits, and follow-up work. Building geometry uses OSM/Overpass;
+Google address suggestions do not import Google's 3D buildings or interiors.
+Public launch needs dedicated world-data infrastructure.
 
 Phone → **Capture** collects exterior, interior and surrounding-area evidence for
 a particular map location, including missing buildings. Indoor drafts support
@@ -110,6 +125,7 @@ pnpm --filter server dev
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:google
 pnpm --filter web test
 pnpm --filter shared test
 pnpm --filter web build

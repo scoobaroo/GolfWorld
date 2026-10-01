@@ -7,6 +7,7 @@ import { useCaptureDevices } from './devices';
 import { describeMedia, exportBlob, mediaExtension, photoFromVideo } from './media';
 import { readDraft, type CaptureDraft } from './storage';
 import { useCaptures } from './store';
+import { useDeviceLocation } from '../geo/device-location';
 
 type Target = BuildingCapture['target'];
 function initialTarget(): Target {
@@ -18,8 +19,8 @@ function initialTarget(): Target {
     const point = { lat: ring.reduce((sum, p) => sum + p.lat, 0) / ring.length, lon: ring.reduce((sum, p) => sum + p.lon, 0) / ring.length };
     return { point, label: selectedFeature.tags.name?.split(';')[0] || [selectedFeature.tags['addr:housenumber'], selectedFeature.tags['addr:street']].filter(Boolean).join(' ') || 'Building / area', source: 'mapped-building', featureId: selectedFeature.id };
   }
-  const point = destination ?? position ?? WINNIPEG;
-  return { point: { lat: point.lat, lon: point.lon }, label: destination?.name.split(';')[0] || 'Building / area', source: 'map-pin', featureId: null };
+  const point = destination?.provider === 'google' ? useDeviceLocation.getState().fix ?? WINNIPEG : destination ?? position ?? WINNIPEG;
+  return { point: { lat: point.lat, lon: point.lon }, label: destination?.provider === 'google' ? 'Building / area' : destination?.name.split(';')[0] || 'Building / area', source: 'map-pin', featureId: null };
 }
 function localId(): string {
   if (crypto.randomUUID) return crypto.randomUUID();

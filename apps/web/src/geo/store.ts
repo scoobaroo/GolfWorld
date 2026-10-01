@@ -14,6 +14,8 @@ interface GeoState {
 let request = 0; let controller: AbortController | null = null;
 let restoreStarted = false;
 function save(destination: Destination | null, position: GeoPoint): void {
+  // Google selections are session-only; do not retain their content in world saves.
+  if (destination?.provider === 'google') { try { localStorage.removeItem(GEO_SAVE); } catch { /* Storage is optional. */ } return; }
   try { localStorage.setItem(GEO_SAVE, JSON.stringify({ destination, position, active: true })); } catch { /* Guest world still works without storage. */ }
 }
 export const useGeo = create<GeoState>((set, get) => ({
@@ -49,6 +51,7 @@ export const useGeo = create<GeoState>((set, get) => ({
       const data: unknown = JSON.parse(localStorage.getItem(GEO_SAVE) ?? 'null');
       if (!data || typeof data !== 'object' || !('destination' in data) || !('position' in data) || !('active' in data) || !data.active) return;
       const place = destinationSchema.parse(data.destination); const point = geoPointSchema.parse(data.position);
+      if (place.provider === 'google') { localStorage.removeItem(GEO_SAVE); return; }
       await get().travel({ ...place, ...point });
       if (get().scene) { set({ destination: place }); save(place, get().position ?? point); }
     } catch { /* Missing/corrupt geo save leaves Meadow Club playable. */ }

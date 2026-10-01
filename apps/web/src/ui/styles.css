@@ -172,6 +172,9 @@ button.map-destination-marker { position: absolute; width: 44px; height: 44px; b
 .map-tile-error { position: absolute; bottom: 25px; left: 12px; right: 12px; background: #fffdf6ee; padding: 6px; border-radius: 8px; font-size: 10px; }
 .map-caption { font-size: 10px; color: #68785f; margin: 10px 0; }.map-error { color: #964b2e; background: #f6e7d7; padding: 10px; border-radius: 10px; margin: 10px 0; }.map-status { margin: 10px 0; }
 .address-lookup { width: 100%; max-width: 640px; }
+.google-address-input gmp-basic-place-autocomplete { display: block; width: 100%; color-scheme: light; font-size: 16px; border-radius: 12px; }
+.google-place-details gmp-place-details-compact { display: block; width: 100%; margin: 10px 0; color-scheme: light; font-size: 16px; }
+.google-coordinate-attribution { font-size: 12px; color: #1f1f1f; }
 .address-search-row { position: relative; z-index: 5; }
 .address-input-hint { margin-top: 7px; color: #68785f; font-size: 10px; }
 .address-dropdown { position: absolute; top: calc(100% + 7px); left: 0; right: 0; border: 1px solid #c9d4bf; border-radius: 15px; background: #fffdf6; box-shadow: 0 12px 35px #173e3233; overflow: hidden; }

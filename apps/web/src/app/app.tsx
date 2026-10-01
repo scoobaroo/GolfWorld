@@ -26,8 +26,10 @@ export function App(): ReactNode {
   useEffect(() => { void useGeo.getState().restore(); }, []);
   useEffect(() => {
     const keyDown = (event: KeyboardEvent): void => {
+      // Closed shadow inputs retarget keyboard events to their Google widget host.
+      if ([event.target, document.activeElement].some((target) => target instanceof Element && target.closest('gmp-basic-place-autocomplete, gmp-place-autocomplete'))) return;
       if (event.code === 'Escape') useGame.getState().togglePhone(false);
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (event.code === 'KeyP' && !event.repeat) useGame.getState().togglePhone();
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
       controls.keys.add(event.code);

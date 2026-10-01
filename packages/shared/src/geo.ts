@@ -3,9 +3,10 @@ import { z } from 'zod';
 export const geoPointSchema = z.object({ lat: z.number().finite().min(-85).max(85), lon: z.number().finite().min(-180).max(180) });
 export type GeoPoint = z.infer<typeof geoPointSchema>;
 export const destinationSchema = geoPointSchema.extend({
-  id: z.string(), name: z.string(), address: z.string(), country: z.enum(['US', 'CA', 'TW']),
+  id: z.string(), name: z.string(), address: z.string(), country: z.enum(['US', 'CA', 'TW']).nullable(),
   kind: z.string(), precision: z.enum(['address', 'street', 'place']),
-});
+  provider: z.enum(['osm', 'google']).optional(),
+}).refine((place) => place.country !== null || place.provider === 'google', 'A map destination must include its country.');
 export type Destination = z.infer<typeof destinationSchema>;
 export const geoFeatureSchema = z.object({
   id: z.string(), kind: z.enum(['building', 'road', 'area', 'poi']),
