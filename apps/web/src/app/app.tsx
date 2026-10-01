@@ -6,12 +6,12 @@ import { useGame } from './store';
 import { controls, resetControls } from '../world/input';
 const WorldScene = lazy(() => import('../world/world-scene'));
 
-class WorldBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
-  state = { error: false };
-  static getDerivedStateFromError(): { error: boolean } { return { error: true }; }
+class WorldBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error): { error: Error } { return { error }; }
   componentDidCatch(error: Error, info: ErrorInfo): void { console.error(error, info); }
   render(): ReactNode {
-    if (this.state.error) return <div className="loading"><h2>The world couldn’t load</h2><p>Check that WebGL is enabled, then reload.</p><button onClick={() => location.reload()}>Reload world</button></div>;
+    if (this.state.error) return <div className="loading"><h2>The world couldn’t load</h2><p>World assets or graphics could not start. Reload to try again.</p><details><summary>Error details</summary><p>{this.state.error.message}</p></details><button onClick={() => location.reload()}>Reload world</button></div>;
     return this.props.children;
   }
 }
