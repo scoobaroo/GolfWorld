@@ -5,6 +5,7 @@ import { Phone } from '../phone/phone';
 import { useGame } from './store';
 import { controls, resetControls } from '../world/input';
 import { useGeo } from '../geo/store';
+import { useWorldLocation } from '../geo/device-location';
 const WorldScene = lazy(() => import('../world/world-scene'));
 
 class WorldBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -20,6 +21,7 @@ export function App(): ReactNode {
   const phoneOpen = useGame((state) => state.phoneOpen);
   const mode = useGame((state) => state.mode);
   const worldReady = useGame((state) => state.worldReady);
+  useWorldLocation(worldReady);
   const drag = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => { void useGeo.getState().restore(); }, []);
   useEffect(() => {

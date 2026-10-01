@@ -38,6 +38,7 @@ and full PWA behavior; ordinary guest play works over LAN HTTP.
 | Open phone | P or Phone button | Phone button |
 | Close phone | Esc or close button | Close button or swipe down from phone top |
 | Move between areas | Hub / Home / Golf buttons | Same touch controls |
+| Device GPS | Permission requested when the world opens; Phone → Settings to turn it off | Same; GPS is reused by Capture |
 | Set your name and invert Y | Phone → Settings | Same |
 | Set your appearance | Phone → Settings → Your appearance; Face / Full body preview, drag to turn | Same touch preview and color controls |
 | Place furniture | Home → choose a piece → click the lot pad | Choose a piece → tap the pad |
@@ -81,8 +82,11 @@ public launch needs dedicated world-data infrastructure.
 
 Phone → **Capture** collects exterior, interior and surrounding-area evidence for
 a particular map location, including missing buildings. Indoor drafts support
-floor and room labels even without GPS. Review, save, reopen from purple map
-pins, and export media plus JSON. Camera/GPS/direction need HTTPS on physical
+floor and room labels even without GPS. Device GPS is requested once when the
+world loads and reused by Capture; it stays separate from the avatar's virtual
+position. Phone → Settings can disable it, with that preference remembered.
+Location updates pause while the world is hidden. Review, save, reopen from
+purple map pins, and export media plus JSON. Camera/GPS/direction need HTTPS on physical
 phones (localhost works for development); native photo/video selection is also
 available. Drafts stay in this browser's IndexedDB, with a 25 MB per-capture and
 100 MB / 30-draft budget. They collect evidence; shared publication and automatic

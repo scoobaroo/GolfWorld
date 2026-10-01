@@ -5,8 +5,8 @@ import { buildingCaptureSchema, type BuildingCapture } from '@golfworld/shared';
 async function fixture(page: Page, denied = false): Promise<void> {
   await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#d9e4cf"/></svg>' }));
   await page.addInitScript((deny) => {
-    const tracks: MediaStreamTrack[] = []; const watches = new Set<number>();
-    Object.assign(window, { captureTest: { tracks, watches } });
+    const tracks: MediaStreamTrack[] = []; const watches = new Set<number>(); const calls = { gps: 0 };
+    Object.assign(window, { captureTest: { tracks, watches, calls } });
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => {
       if (deny) throw new DOMException('Denied', 'NotAllowedError');
       const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480; const context = canvas.getContext('2d')!;
@@ -20,6 +20,7 @@ async function fixture(page: Page, denied = false): Promise<void> {
     } } });
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
       watchPosition: (success: PositionCallback, failure: PositionErrorCallback) => {
+        calls.gps++;
         if (deny) { window.setTimeout(() => failure({ code: 1, message: 'Denied' } as GeolocationPositionError), 0); return 1; }
         const fix = (): void => success({ coords: { latitude: 49.89503, longitude: -97.13846, accuracy: 8, altitude: 229, altitudeAccuracy: 15, heading: null, speed: null }, timestamp: Date.now() } as GeolocationPosition);
         window.setTimeout(fix, 0); const id = window.setInterval(fix, 500); watches.add(id); return id;
@@ -31,6 +32,7 @@ async function fixture(page: Page, denied = false): Promise<void> {
     }, 200);
   }, denied);
   await page.goto('/'); await expect(page.locator('main[data-world-ready="true"]')).toBeVisible({ timeout: 30000 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { captureTest: { calls: { gps: number } } }).captureTest.calls.gps)).toBe(1);
   await page.getByRole('button', { name: 'Global map', exact: true }).click();
   await page.getByRole('button', { name: 'Capture building or area' }).click();
   await expect(page.getByRole('heading', { name: 'Capture', exact: true })).toBeVisible();
@@ -39,19 +41,34 @@ async function metadata(page: Page): Promise<BuildingCapture> {
   const download = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download metadata' }).click();
   return buildingCaptureSchema.parse(JSON.parse(await readFile((await (await download).path())!, 'utf8')));
 }
-async function sensorsStopped(page: Page): Promise<void> {
+async function captureStopped(page: Page): Promise<void> {
   await expect.poll(() => page.evaluate(() => {
     const state = (window as unknown as { captureTest: { tracks: MediaStreamTrack[]; watches: Set<number> } }).captureTest;
-    return state.tracks.every((track) => track.readyState === 'ended') && state.watches.size === 0;
+    return state.tracks.every((track) => track.readyState === 'ended');
   })).toBe(true);
 }
+test('world entry requests GPS once, Capture reuses it, and Settings can disable it across reloads', async ({ page }) => {
+  await fixture(page); await expect(page.getByText('GPS readings available')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry GPS', exact: true })).not.toBeVisible();
+  const calls = (): Promise<number> => page.evaluate(() => (window as unknown as { captureTest: { calls: { gps: number } } }).captureTest.calls.gps);
+  await page.getByRole('button', { name: 'Close phone', exact: true }).click();
+  await page.getByRole('button', { name: 'Golf', exact: true }).click();
+  await page.getByRole('button', { name: 'Phone', exact: false }).click(); await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Device location settings' })).toContainText('GPS readings available'); expect(await calls()).toBe(1);
+  await page.getByRole('button', { name: 'Turn GPS off', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { captureTest: { watches: Set<number> } }).captureTest.watches.size)).toBe(0);
+  await page.reload(); await expect(page.locator('main[data-world-ready="true"]')).toBeVisible({ timeout: 30000 }); expect(await calls()).toBe(0);
+  await page.getByRole('button', { name: 'Phone', exact: false }).click(); await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Enable GPS', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Device location settings' })).toContainText('GPS readings available'); expect(await calls()).toBe(1);
+});
 test('photo captures keep GPS separate from building pins, persist, export, and reopen from the map', async ({ page }, info) => {
   await fixture(page); await page.getByLabel('Building / place name').fill('Winnipeg exterior fixture');
-  await page.getByRole('button', { name: 'Enable GPS', exact: true }).click(); await expect(page.getByText('GPS readings available')).toBeVisible();
+  await expect(page.getByText('GPS readings available')).toBeVisible();
   await page.getByRole('button', { name: 'Enable direction sensor' }).click(); await expect(page.getByText('Direction readings available')).toBeVisible();
   await page.getByRole('button', { name: 'Enable camera', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Take photo' })).toBeEnabled(); await page.getByRole('button', { name: 'Take photo' }).click();
-  await expect(page.getByRole('img', { name: 'Capture of Winnipeg exterior fixture' })).toBeVisible(); await sensorsStopped(page);
+  await expect(page.getByRole('img', { name: 'Capture of Winnipeg exterior fixture' })).toBeVisible(); await captureStopped(page);
   await page.getByLabel('Detail notes').fill('Facade and roofline need review.');
   await page.getByRole('button', { name: 'Save local draft' }).click(); await expect(page.getByText('Draft saved on this device.')).toBeVisible();
   const capture = await metadata(page);
@@ -74,7 +91,7 @@ test('photo captures keep GPS separate from building pins, persist, export, and 
 test('short video records playable media and timestamped sensor samples; closing releases devices', async ({ page }) => {
   await fixture(page); await page.getByRole('radio', { name: 'Area', exact: true }).check();
   await page.getByLabel('Building / place name').fill('Area video fixture');
-  await page.getByRole('button', { name: 'Enable GPS', exact: true }).click();
+  await expect(page.getByText('GPS readings available')).toBeVisible();
   await page.getByRole('button', { name: 'Enable camera', exact: true }).click(); await expect(page.getByRole('button', { name: 'Record video' })).toBeEnabled();
   await page.getByRole('button', { name: 'Record video' }).click();
   await expect.poll(() => page.locator('.capture-recording').textContent()).toMatch(/Recording · [2-9] \/ 20/);
@@ -85,19 +102,19 @@ test('short video records playable media and timestamped sensor samples; closing
   await expect.poll(() => preview.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(0);
   const capture = await metadata(page); expect(capture.media.kind).toBe('video'); expect(capture.media.durationMs).toBeGreaterThan(1000); expect(capture.samples.length).toBeGreaterThan(2);
   expect(capture.coverage).toBe('area');
-  expect(capture.samples.at(-1)?.offsetMs).toBe(capture.media.durationMs); await sensorsStopped(page);
+  expect(capture.samples.at(-1)?.offsetMs).toBe(capture.media.durationMs); await captureStopped(page);
   await page.getByRole('button', { name: 'Save local draft' }).click(); await expect(page.getByText('Draft saved on this device.')).toBeVisible();
   await page.getByRole('button', { name: 'New capture' }).click(); await page.getByRole('button', { name: /Area video fixture video/ }).click();
   await page.getByRole('button', { name: 'Play video', exact: true }).click();
   await expect.poll(() => preview.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'New capture' }).click(); await page.getByRole('button', { name: 'Enable GPS', exact: true }).click();
+  await page.getByRole('button', { name: 'New capture' }).click();
   await page.getByRole('button', { name: 'Enable camera', exact: true }).click(); await expect(page.getByRole('button', { name: 'Take photo' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Close phone', exact: true }).click(); await sensorsStopped(page);
+  await page.getByRole('button', { name: 'Close phone', exact: true }).click(); await captureStopped(page);
 });
 test('denied sensors and imported files retain unknown original pose; quota failure preserves export', async ({ page }, info) => {
   await fixture(page, true); await page.getByRole('button', { name: 'Enable camera', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Camera could not open');
-  await page.getByRole('button', { name: 'Enable GPS', exact: true }).click(); await expect(page.getByText('GPS unavailable or denied.')).toBeVisible();
+  await expect(page.getByText('GPS permission denied.')).toBeVisible();
   await page.getByLabel('Building / place name').fill('Indoor lobby fixture');
   await page.getByRole('radio', { name: 'Interior', exact: true }).check();
   await page.getByLabel('Floor / level (optional)').fill('Ground'); await page.getByLabel('Room / space (optional)').fill('Lobby');

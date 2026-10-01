@@ -6,6 +6,7 @@ import { Scores } from '../ui/scores';
 import { Appearance } from './appearance';
 import { MapApp } from '../geo/map-app';
 import { CaptureApp } from '../capture/capture-app';
+import { locationMessage, useDeviceLocation } from '../geo/device-location';
 type PhoneApp = 'home-screen' | 'map' | 'capture' | 'scores' | 'home' | 'inventory' | 'friends' | 'shop' | 'settings';
 const apps: { id: Exclude<PhoneApp, 'home-screen'>; label: string; icon: IconName; color: string }[] = [
   { id: 'map', label: 'Map', icon: 'map', color: '#568777' }, { id: 'scores', label: 'Scores', icon: 'scores', color: '#d39f53' },
@@ -24,6 +25,10 @@ function Settings(): ReactNode {
     <p className="muted">Drag the world to look around. Invert Y changes the vertical camera direction.</p>
     <button className="primary" type="submit">Save name</button>{saved && <p role="status" className="saved-message">Name saved.</p>}
   </form>;
+}
+function LocationSettings(): ReactNode {
+  const enabled = useDeviceLocation((state) => state.enabled); const status = useDeviceLocation((state) => state.status);
+  return <section className="settings location-settings" aria-label="Device location settings"><h2>Device location</h2><p className="muted">GPS permission is requested when the world opens. Your device location is used for capture metadata; it does not move your avatar.</p><p role="status" className="capture-sensor-status">{locationMessage(status)}</p><div className="capture-actions">{enabled ? <><button onClick={() => useDeviceLocation.getState().disable()}>Turn GPS off</button>{['idle', 'denied', 'error', 'unavailable'].includes(status) && <button onClick={() => useDeviceLocation.getState().enable()}>Retry GPS</button>}</> : <button onClick={() => useDeviceLocation.getState().enable()}>Enable GPS</button>}</div></section>;
 }
 export function Phone(): ReactNode {
   const [current, setCurrent] = useState<PhoneApp>(() => useGame.getState().phonePage);
@@ -47,7 +52,7 @@ export function Phone(): ReactNode {
     <div className="phone-toolbar">{current !== 'home-screen' ? <button aria-label="Phone home" onClick={() => setCurrent('home-screen')}>‹ Apps</button> : <span className="eyebrow">YOUR WORLD, IN YOUR POCKET</span>}<button className="icon-button" aria-label="Close phone" onClick={close}><Icon name="close" /></button></div>
     <div className="phone-content" ref={content}>
       {current === 'home-screen' ? <><h1>Hello,<br />{profile.name}.</h1><p className="muted">A good day to get outside.</p><div className="phone-widget"><Icon name="flag" size={28} /><div><small>YOUR NEXT ROUND</small><strong>Meadow Run</strong><span>Par 4 · 380 yards</span></div></div><div className="app-grid">{apps.map((entry) => <button key={entry.id} onClick={() => setCurrent(entry.id)}><span className="app-icon" style={{ background: entry.color }}><Icon name={entry.icon} size={28} /></span><span>{entry.label}</span></button>)}</div><p className="phone-footer">Local guest session · swipe down from the top to close</p></> : <><h1>{app?.label}</h1>
-        {current === 'map' && <MapApp onOpenCapture={() => setCurrent('capture')} />}{current === 'capture' && <CaptureApp />}{current === 'scores' && <Scores />}{current === 'settings' && <><Settings /><Appearance /></>}
+        {current === 'map' && <MapApp onOpenCapture={() => setCurrent('capture')} />}{current === 'capture' && <CaptureApp />}{current === 'scores' && <Scores />}{current === 'settings' && <><Settings /><LocationSettings /><Appearance /></>}
         {current === 'home' && <div className="empty-state"><Icon name="home" size={36} /><h3>A place of your own.</h3><p>Your lot comes with three furniture pieces to arrange.</p><button className="primary" onClick={() => useGame.getState().setMode('home')}>Arrange your home</button></div>}
         {(current === 'inventory' || current === 'shop') && <><p className="muted">{current === 'shop' ? 'Catalog preview. All starter items are included; checkout is disabled.' : 'Your starter kit. Included with every guest session.'}</p><ul className="catalog-list">{catalog.map((item) => <li key={item.sku}><Icon name={item.slot === 'club' ? 'flag' : item.slot === 'phone_skin' ? 'phone' : 'home'} /><div><strong>{item.name}</strong><small>{item.slot.replace('_', ' ')}</small></div><span>Included</span></li>)}</ul></>}
         {current === 'friends' && <div className="empty-state"><Icon name="friends" size={36} /><h3>Company is coming.</h3><p>Friends and shared rounds arrive with multiplayer. Enjoy a local practice round today.</p></div>}

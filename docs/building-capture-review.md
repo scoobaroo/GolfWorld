@@ -9,7 +9,7 @@ service, reconstruction framework, or upload destination is introduced.
 Phone → Capture, Map → Capture building or area, or a mapped building's
 Capture details button. Choose Exterior / Interior / Area. Interior captures
 include optional floor/level and room/space labels. Choose/correct the place pin using the map center,
-name it, enable the camera, GPS and optional direction sensor separately,
+name it, enable the camera and optional direction sensor,
 then take a photo or record a silent video of up to 20 seconds. Review the
 media and metadata before saving locally. Add photo/video also opens a native
 camera/file picker, which is useful when a browser lacks live recording.
@@ -56,9 +56,14 @@ These are evidence contributions, not automatic geometry or live world edits.
 
 Camera/GPS/orientation need HTTPS on a physical phone; localhost works for
 desktop development. HTTP LAN URLs cannot supply live camera/GPS. Permission
-denials and absent sensors are shown without inventing values. Closing the
-phone/app page, leaving Capture, or hiding the page stops the camera and sensor
-listeners. Tests use synthetic camera/sensor fixtures, not real device access.
+denials and absent sensors are shown without inventing values.
+GPS permission is requested once when the world becomes ready and remains a
+shared foreground session across phone pages/captures. Phone → Settings can
+turn GPS off; that preference is remembered. Denial does not trigger repeated
+requests. Backgrounding or leaving the world pauses GPS; returning resumes a
+previously active session. Closing the phone or leaving Capture stops its
+camera and direction listeners while foreground-world GPS remains available.
+Tests use synthetic camera/sensor fixtures, not real device access.
 Physical iPhone/Android hardware accuracy and optical calibration still need
 field testing.
 
