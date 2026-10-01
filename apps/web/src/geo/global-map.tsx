@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { mapPixel, pixelToGeo, type GeoPoint, type Destination } from '@golfworld/shared';
+import { Icon } from '../ui/icons';
 
 const template = import.meta.env.VITE_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-export function GlobalMap({ center, onCenter, zoom, onZoom, position, selected, onTravel }: {
+export function GlobalMap({ center, onCenter, zoom, onZoom, position, selected, onTravel, annotations = [], onAnnotation }: {
   center: GeoPoint; onCenter(point: GeoPoint): void; zoom: number; onZoom(zoom: number): void;
   position: GeoPoint | null; selected: Destination | null; onTravel(place: Destination): void;
+  annotations?: { id: string; point: GeoPoint; label: string }[]; onAnnotation?: (id: string) => void;
 }): ReactNode {
   const root = useRef<HTMLDivElement>(null); const drag = useRef<{ x: number; y: number; point: GeoPoint } | null>(null);
   const [size, setSize] = useState({ width: 320, height: 280 }); const [failed, setFailed] = useState(false);
@@ -39,6 +41,7 @@ export function GlobalMap({ center, onCenter, zoom, onZoom, position, selected, 
     {tiles}
     {position && <span className="map-avatar-marker" aria-label="Your avatar location" style={marker(position)}><span /></span>}
     {selected && <button className="map-destination-marker" aria-label={`Travel to ${selected.name}`} style={marker(selected)} onClick={() => onTravel(selected)}>⌖</button>}
+    {annotations.map((item) => onAnnotation ? <button key={item.id} className="map-capture-marker" aria-label={`Local capture: ${item.label}`} style={marker(item.point)} onClick={() => onAnnotation(item.id)}><Icon name="camera" size={19} /></button> : <span key={item.id} className="map-capture-marker" aria-label={item.label} style={marker(item.point)}><Icon name="camera" size={19} /></span>)}
     <div className="map-zoom"><button aria-label="Zoom in map" disabled={zoom >= 19} onClick={() => onZoom(zoom + 1)}>+</button><button aria-label="Zoom out map" disabled={zoom <= 1} onClick={() => onZoom(zoom - 1)}>−</button></div>
     {failed && <p className="map-tile-error">Basemap unavailable. Search and travel remain available.</p>}
     <a className="map-attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>

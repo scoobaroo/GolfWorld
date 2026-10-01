@@ -34,6 +34,7 @@ and full PWA behavior; ordinary guest play works over LAN HTTP.
 | Walk the hub | WASD or arrow keys | Drag the lower-left joystick |
 | Look around | Drag the world | Drag the world |
 | Find an address or golf course | Global map → type a location → choose a dropdown suggestion (or ↓/↑ + Enter) | Tap a suggestion; USA, Canada, Taiwan filters |
+| Capture building or area details | Phone → Capture, or Map → Capture building or area | Choose Exterior / Interior / Area; take photos or video, add floor/room labels and save locally |
 | Open phone | P or Phone button | Phone button |
 | Close phone | Esc or close button | Close button or swipe down from phone top |
 | Move between areas | Hub / Home / Golf buttons | Same touch controls |
@@ -78,6 +79,15 @@ See [geography implementation and Grok handoff](docs/geography-handoff.md)
 for providers, limits, and follow-up work. Local defaults need no API key;
 public launch needs dedicated world-data infrastructure.
 
+Phone → **Capture** collects exterior, interior and surrounding-area evidence for
+a particular map location, including missing buildings. Indoor drafts support
+floor and room labels even without GPS. Review, save, reopen from purple map
+pins, and export media plus JSON. Camera/GPS/direction need HTTPS on physical
+phones (localhost works for development); native photo/video selection is also
+available. Drafts stay in this browser's IndexedDB, with a 25 MB per-capture and
+100 MB / 30-draft budget. They collect evidence; shared publication and automatic
+3D reconstruction await [user/Grok design review](docs/building-capture-review.md).
+
 Inventory and Shop display the included starter catalog. Friends is a
 placeholder. Checkout is disabled.
 
@@ -106,7 +116,8 @@ pnpm test:pwa        # production build + cached offline visit
 Tests exercise desktop Chromium, Android phone Chromium, iPhone WebKit, and iPad
 WebKit emulation. They cover profile and layout persistence, the 3D appearance
 preview, natural idle/walk poses, address travel/map/restore/failure recovery,
-touch swings, scoring, and complete Rapier ball flights.
+touch swings, scoring, complete Rapier ball flights, local photo/video evidence,
+indoor labels, sensor denial, export, and offline draft reopening.
 Emulation is not a substitute for performance checks on physical phones
 and tablets.
 For this session's downloaded browsers, set

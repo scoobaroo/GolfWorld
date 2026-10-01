@@ -14,10 +14,11 @@ try { saved = readSavedData(localStorage); } catch { /* Private browsing can den
 export type Mode = 'hub' | 'home' | 'golf' | 'explore';
 type ShotCommand = ShotIntent & { id: number };
 interface GameStore extends SavedData {
-  mode: Mode; phoneOpen: boolean; phonePage: 'home-screen' | 'map'; worldReady: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
+  mode: Mode; phoneOpen: boolean; phonePage: 'home-screen' | 'map' | 'capture'; worldReady: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
   ball: Vec3; ballAtRest: boolean; strokes: number; roundEvents: StrokeEvent[]; club: ClubId; aim: number; round: number; shot: ShotCommand | null; complete: Score | null; notice: string;
   setMode(mode: Mode): void; togglePhone(open?: boolean): void; setProfile(profile: Profile): void;
   openMap(): void;
+  openCapture(): void;
   setAppearance(appearance: AvatarAppearance): void;
   selectFurniture(id: string | null): void; setPlacing(sku: FurnitureSku | null): void; placeFurniture(pos: Vec3): void; moveFurniture(id: string, pos: Vec3): void; rotateFurniture(): void; removeFurniture(): void;
   setClub(club: ClubId): void; setAim(aim: number): void; hit(power: number, face: number): void; updateBall(ball: Vec3, ballAtRest: boolean): void; penalty(): void; finish(): void; resetRound(): void;
@@ -28,6 +29,7 @@ export const useGame = create<GameStore>((set, get) => ({
   setMode: (mode) => set({ mode, phoneOpen: false, placing: null, selectedFurniture: null }),
   togglePhone: (open) => set({ phoneOpen: open ?? !get().phoneOpen, phonePage: 'home-screen' }),
   openMap: () => set({ phoneOpen: true, phonePage: 'map' }),
+  openCapture: () => set({ phoneOpen: true, phonePage: 'capture' }),
   setProfile: (profile) => set({ profile }),
   setAppearance: (appearance) => set({ appearance }),
   selectFurniture: (selectedFurniture) => set({ selectedFurniture, placing: null }),

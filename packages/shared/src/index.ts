@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export * from './geo';
+export * from './capture';
 
 export const clubIdSchema = z.enum(['driver', 'iron', 'putter']);
 export type ClubId = z.infer<typeof clubIdSchema>;

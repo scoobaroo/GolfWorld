@@ -21,5 +21,17 @@ test('production world and phone load offline after a cached visit', async ({ pa
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your appearance' })).toBeVisible();
   await expect(page.getByRole('img', { name: '3D preview of your avatar; drag to turn' }).locator('canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Phone home', exact: true }).click();
+  await page.getByRole('button', { name: 'Capture', exact: true }).click();
+  await page.getByLabel('Building / place name').fill('Offline exterior draft');
+  await page.getByLabel('Add photo', { exact: true }).setInputFiles('public/icon-192.png');
+  await expect(page.getByRole('img', { name: 'Capture of Offline exterior draft' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save local draft' }).click();
+  await expect(page.getByText('Draft saved on this device.')).toBeVisible();
+  await page.reload(); await expect(page.locator('main')).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Phone', exact: false }).click(); await page.getByRole('button', { name: 'Capture', exact: true }).click();
+  await page.getByRole('button', { name: /Offline exterior draft photo/ }).click();
+  await expect(page.getByRole('img', { name: 'Capture of Offline exterior draft' })).toBeVisible();
+  await expect(page.getByText('Camera GPS: unknown')).toBeVisible();
   expect(errors).toEqual([]);
 });
