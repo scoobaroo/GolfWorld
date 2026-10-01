@@ -1,12 +1,10 @@
-import { Suspense, useEffect, useRef, Component, type ReactNode, type ErrorInfo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Physics } from '@react-three/rapier';
-import { GRAVITY, clamp } from '@golfworld/shared';
-import { World } from '../world/world';
+import { Suspense, lazy, useEffect, useRef, Component, type ReactNode, type ErrorInfo } from 'react';
+import { clamp } from '@golfworld/shared';
 import { Hud } from '../ui/hud';
 import { Phone } from '../phone/phone';
 import { useGame } from './store';
 import { controls, resetControls } from '../world/input';
+const WorldScene = lazy(() => import('../world/world-scene'));
 
 class WorldBoundary extends Component<{ children: ReactNode }, { error: boolean }> {
   state = { error: false };
@@ -20,12 +18,13 @@ class WorldBoundary extends Component<{ children: ReactNode }, { error: boolean 
 export function App(): ReactNode {
   const phoneOpen = useGame((state) => state.phoneOpen);
   const mode = useGame((state) => state.mode);
+  const worldReady = useGame((state) => state.worldReady);
   const drag = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const keyDown = (event: KeyboardEvent): void => {
+      if (event.code === 'Escape') useGame.getState().togglePhone(false);
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       if (event.code === 'KeyP' && !event.repeat) useGame.getState().togglePhone();
-      if (event.code === 'Escape') useGame.getState().togglePhone(false);
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
       controls.keys.add(event.code);
     };
@@ -34,7 +33,7 @@ export function App(): ReactNode {
     return () => { window.removeEventListener('keydown', keyDown); window.removeEventListener('keyup', keyUp); window.removeEventListener('blur', resetControls); };
   }, []);
   useEffect(resetControls, [phoneOpen, mode]);
-  return <main className="relative h-dvh w-screen overflow-hidden bg-emerald-950">
+  return <main className="relative h-dvh w-screen overflow-hidden bg-emerald-950" data-world-ready={worldReady}>
     <div className="world-canvas" onPointerDown={(event) => {
       if (mode === 'home' || phoneOpen || event.button !== 0) return;
       drag.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId);
@@ -45,9 +44,7 @@ export function App(): ReactNode {
       drag.current = { x: event.clientX, y: event.clientY };
     }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
       <WorldBoundary><Suspense fallback={<div className="loading">Opening Meadow Club…</div>}>
-        <Canvas camera={{ position: [9, 8, 14], fov: 48, near: 0.05, far: 650 }} dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-          <Physics gravity={[0, -GRAVITY, 0]} timeStep={1 / 60}><World /></Physics>
-        </Canvas>
+        <WorldScene />
       </Suspense></WorldBoundary>
     </div>
     <Hud />{phoneOpen && <Phone />}

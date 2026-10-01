@@ -1,9 +1,51 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
-    "dev": { "cache": false, "persistent": true },
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "typecheck": { "dependsOn": ["^typecheck"] },
-    "test": { "dependsOn": ["^build"], "outputs": [] }
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "PORT",
+        "VITE_*",
+        "DATABASE_URL"
+      ]
+    },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "VITE_*"
+      ]
+    },
+    "@golfworld/shared#build": {
+      "outputs": []
+    },
+    "@golfworld/economy#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    },
+    "server#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    }
   }
 }

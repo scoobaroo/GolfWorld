@@ -24,6 +24,7 @@ function Avatar(): ReactNode {
   const model = useRef<Group>(null);
   const phoneOpen = useGame((state) => state.phoneOpen);
   const mode = useGame((state) => state.mode);
+  const appearance = useGame((state) => state.appearance);
   const cameraPosition = useMemo(() => new Vector3(), []);
   const target = useMemo(() => new Vector3(), []);
   const position = useRef({ x: 0, y: 1, z: 9 });
@@ -48,29 +49,36 @@ function Avatar(): ReactNode {
         model.current.position.y = Math.sin(clock.elapsedTime * 12) * 0.045;
       }
     }
+    if (state.mode === 'golf') {
+      position.current.x = ball[0] - 1.5; position.current.z = ball[2] + 1.5;
+      body.current?.setNextKinematicTranslation(position.current);
+      if (model.current) { model.current.visible = state.ballAtRest || state.phoneOpen; model.current.rotation.y = Math.PI; }
+    } else if (model.current) model.current.visible = true;
     if (state.mode === 'home') {
       cameraPosition.set(-15, 22, 18); target.set(-15, 0, 0);
     } else if (state.mode === 'golf') {
       const heading = Math.atan2(COURSE.cup[0] - ball[0], ball[2] - COURSE.cup[2]) + state.aim;
       cameraPosition.set(ball[0] - Math.sin(heading) * 13, Math.max(7, ball[1] + 6), ball[2] + Math.cos(heading) * 13);
-      target.set(ball[0] + Math.sin(heading) * 5, ball[1], ball[2] - Math.cos(heading) * 5);
+      target.set(ball[0] + Math.sin(heading) * 2, ball[1] + 0.3, ball[2] - Math.cos(heading) * 2);
     } else {
-      cameraPosition.set(position.current.x + Math.sin(controls.yaw) * 10, 5 + controls.pitch * 7, position.current.z + Math.cos(controls.yaw) * 10);
-      target.set(position.current.x, 1.2, position.current.z);
+      cameraPosition.set(position.current.x + Math.sin(controls.yaw) * 13, 5 + controls.pitch * 7, position.current.z + Math.cos(controls.yaw) * 13);
+      target.set(position.current.x - Math.sin(controls.yaw) * 4, 1.4, position.current.z - Math.cos(controls.yaw) * 4);
     }
     camera.position.lerp(cameraPosition, 1 - Math.exp(-step * 8)); camera.lookAt(target);
   });
   return <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, 1, 9]}><CapsuleCollider args={[0.5, 0.3]} />
-    <group ref={model} visible={mode !== 'golf'}>
-      <mesh position={[0, 0.35, 0]}><capsuleGeometry args={[0.28, 0.55, 4, 8]} /><meshStandardMaterial color="#e9b65d" /></mesh>
-      <mesh position={[0, 0.98, 0]}><sphereGeometry args={[0.24, 12, 8]} /><meshStandardMaterial color="#b8774f" /></mesh>
-      <Block position={[0, 1.16, 0.03]} scale={[0.56, 0.12, 0.5]} color="#f2e8cc" />
-      <Block position={[-0.15, -0.5, 0]} scale={[0.2, 0.7, 0.25]} color="#2e4c43" /><Block position={[0.15, -0.5, 0]} scale={[0.2, 0.7, 0.25]} color="#2e4c43" />
+    <group ref={model}>
+      <mesh position={[0, 0.35, 0]}><capsuleGeometry args={[0.28, 0.55, 4, 8]} /><meshStandardMaterial color={appearance.shirtColor} /></mesh>
+      <mesh position={[0, 0.98, 0]}><sphereGeometry args={[0.24, 12, 8]} /><meshStandardMaterial color={appearance.skinColor} /></mesh>
+      <Block position={[0, 1.16, 0.03]} scale={[0.56, 0.12, 0.5]} color={appearance.hatColor} />
+      <Block position={[-0.15, -0.5, 0]} scale={[0.2, 0.7, 0.25]} color={appearance.pantsColor} /><Block position={[0.15, -0.5, 0]} scale={[0.2, 0.7, 0.25]} color={appearance.pantsColor} />
       {phoneOpen && <group position={[0.42, 0.45, 0.3]} rotation={[-0.5, 0, 0]}><Block position={[0, 0, 0]} scale={[0.18, 0.34, 0.025]} color="#153e33" /><Block position={[0, 0, 0.017]} scale={[0.14, 0.28, 0.01]} color="#bce3d0" /></group>}
     </group>
   </RigidBody>;
 }
 export function World(): ReactNode {
+  const ready = useRef(false);
+  useFrame(() => { if (!ready.current) { ready.current = true; useGame.setState({ worldReady: true }); } });
   return <>
     <color attach="background" args={['#c6e0d7']} /><fog attach="fog" args={['#c6e0d7', 180, 550]} />
     <ambientLight intensity={1.1} /><hemisphereLight args={['#fff4df', '#51704c', 1.6]} /><directionalLight position={[50, 90, 20]} intensity={2.2} />

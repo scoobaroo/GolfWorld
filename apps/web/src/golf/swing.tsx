@@ -51,7 +51,7 @@ export function Swing(): ReactNode {
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
   });
   return <section className="swing-panel panel" aria-label="Golf controls">
-    <div className="row-between"><span className="eyebrow">YOUR NEXT SHOT</span><span className="lie">{surfaceAt(ball)} · {Math.round(distanceToCup(ball))} m</span></div>
+    <div className="row-between"><span className="eyebrow">YOUR NEXT SHOT</span><span className="lie" data-distance={distanceToCup(ball)}>{surfaceAt(ball)} · {distanceToCup(ball) < 20 ? distanceToCup(ball).toFixed(1) : Math.round(distanceToCup(ball))} m</span></div>
     <div className="club-tabs">{(Object.keys(CLUBS) as ClubId[]).map((id) => <button key={id} className={club === id ? 'active' : ''} disabled={!ballAtRest || phase !== 'idle'} onClick={() => useGame.getState().setClub(id)}>{CLUBS[id].label}</button>)}</div>
     <label className="aim-label">Aim <span>{Math.round(aim * 180 / Math.PI)}°</span><input aria-label="Aim angle" type="range" min="-90" max="90" step="1" value={Math.round(aim * 180 / Math.PI)} disabled={!ballAtRest || phase !== 'idle'} onChange={(event) => useGame.getState().setAim(Number(event.target.value) * Math.PI / 180)} /></label>
     <div className={`swing-meter ${phase === 'face' ? 'face-meter' : ''}`} aria-label="Swing meter"><div className="meter-fill" style={{ width: `${meter * 100}%` }} /><span style={{ left: `${meter * 100}%` }} /></div>

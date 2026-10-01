@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { COURSE, savedDataSchema, clamp, type Profile, type Furniture, type FurnitureSku, type Vec3, type Score, type SavedData, type ClubId, type ShotIntent } from '@golfworld/shared';
+import { COURSE, savedDataSchema, defaultAppearance, clamp, type AvatarAppearance, type Profile, type Furniture, type FurnitureSku, type Vec3, type Score, type SavedData, type ClubId, type ShotIntent } from '@golfworld/shared';
 
 export const STORAGE_KEY = 'golfworld.local.v1';
-export const defaultData: SavedData = { profile: { name: 'Guest golfer', invertY: false }, furniture: [], scores: [] };
+export const defaultData: SavedData = { profile: { name: 'Guest golfer', invertY: false }, appearance: defaultAppearance, furniture: [], scores: [] };
 export function readSavedData(storage: Pick<Storage, 'getItem'>): SavedData {
   try {
     const parsed = savedDataSchema.safeParse(JSON.parse(storage.getItem(STORAGE_KEY) ?? 'null'));
@@ -14,18 +14,20 @@ try { saved = readSavedData(localStorage); } catch { /* Private browsing can den
 export type Mode = 'hub' | 'home' | 'golf';
 type ShotCommand = ShotIntent & { id: number };
 interface GameStore extends SavedData {
-  mode: Mode; phoneOpen: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
+  mode: Mode; phoneOpen: boolean; worldReady: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
   ball: Vec3; ballAtRest: boolean; strokes: number; club: ClubId; aim: number; round: number; shot: ShotCommand | null; complete: Score | null; notice: string;
   setMode(mode: Mode): void; togglePhone(open?: boolean): void; setProfile(profile: Profile): void;
+  setAppearance(appearance: AvatarAppearance): void;
   selectFurniture(id: string | null): void; setPlacing(sku: FurnitureSku | null): void; placeFurniture(pos: Vec3): void; moveFurniture(id: string, pos: Vec3): void; rotateFurniture(): void; removeFurniture(): void;
   setClub(club: ClubId): void; setAim(aim: number): void; hit(power: number, face: number): void; updateBall(ball: Vec3, ballAtRest: boolean): void; penalty(): void; finish(): void; resetRound(): void;
 }
 export const useGame = create<GameStore>((set, get) => ({
-  ...saved, mode: 'hub', phoneOpen: false, storageError: false, selectedFurniture: null, placing: null,
+  ...saved, mode: 'hub', phoneOpen: false, worldReady: false, storageError: false, selectedFurniture: null, placing: null,
   ball: [...COURSE.tee], ballAtRest: true, strokes: 0, club: 'driver', aim: 0, round: 0, shot: null, complete: null, notice: '',
   setMode: (mode) => set({ mode, phoneOpen: false, placing: null, selectedFurniture: null }),
   togglePhone: (open) => set({ phoneOpen: open ?? !get().phoneOpen }),
   setProfile: (profile) => set({ profile }),
+  setAppearance: (appearance) => set({ appearance }),
   selectFurniture: (selectedFurniture) => set({ selectedFurniture, placing: null }),
   setPlacing: (placing) => set({ placing, selectedFurniture: null }),
   placeFurniture: (pos) => {
@@ -56,9 +58,9 @@ export const useGame = create<GameStore>((set, get) => ({
   resetRound: () => set({ round: get().round + 1, ball: [...COURSE.tee], ballAtRest: true, strokes: 0, club: 'driver', aim: 0, shot: null, complete: null, notice: '', mode: 'golf', phoneOpen: false }),
 }));
 useGame.subscribe((state, previous) => {
-  if (state.profile === previous.profile && state.furniture === previous.furniture && state.scores === previous.scores) return;
+  if (state.profile === previous.profile && state.appearance === previous.appearance && state.furniture === previous.furniture && state.scores === previous.scores) return;
   try {
     // TODO: persist lots and authoritative score events via authenticated API.
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile: state.profile, furniture: state.furniture, scores: state.scores }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile: state.profile, appearance: state.appearance, furniture: state.furniture, scores: state.scores }));
   } catch { if (!state.storageError) useGame.setState({ storageError: true }); }
 });

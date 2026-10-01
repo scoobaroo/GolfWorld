@@ -6,6 +6,10 @@ export const vectorSchema = z.tuple([z.number().finite(), z.number().finite(), z
 export type Vec3 = z.infer<typeof vectorSchema>;
 export const profileSchema = z.object({ name: z.string().trim().min(1).max(24), invertY: z.boolean() });
 export type Profile = z.infer<typeof profileSchema>;
+const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const defaultAppearance = { skinColor: '#b8774f', shirtColor: '#e9b65d', pantsColor: '#2e4c43', hatColor: '#f2e8cc' };
+export const appearanceSchema = z.object({ skinColor: colorSchema, shirtColor: colorSchema, pantsColor: colorSchema, hatColor: colorSchema });
+export type AvatarAppearance = z.infer<typeof appearanceSchema>;
 export const furnitureSkuSchema = z.enum(['furn.chair.midcentury', 'furn.table.round', 'furn.planter.fern']);
 export type FurnitureSku = z.infer<typeof furnitureSkuSchema>;
 export const furnitureSchema = z.object({ id: z.string(), sku: furnitureSkuSchema, pos: vectorSchema, rot: z.number().finite() });
@@ -15,7 +19,7 @@ export const scoreSchema = z.object({
   lastClub: clubIdSchema, timestamp: z.string().datetime(), courseId: z.literal('meadow-1'),
 });
 export type Score = z.infer<typeof scoreSchema>;
-export const savedDataSchema = z.object({ profile: profileSchema, furniture: z.array(furnitureSchema).max(40), scores: z.array(scoreSchema).max(100) });
+export const savedDataSchema = z.object({ profile: profileSchema, appearance: appearanceSchema.default(defaultAppearance), furniture: z.array(furnitureSchema).max(40), scores: z.array(scoreSchema).max(100) });
 export type SavedData = z.infer<typeof savedDataSchema>;
 
 export const COURSE = {
@@ -27,7 +31,7 @@ export const COURSE = {
 export const CLUBS: Record<ClubId, { label: string; speed: number; loft: number; hint: string }> = {
   driver: { label: 'Driver', speed: 47, loft: 0.39, hint: 'Long flight · tee & fairway' },
   iron: { label: '7-iron', speed: 33, loft: 0.62, hint: 'High approach · ~110 m' },
-  putter: { label: 'Putter', speed: 8, loft: 0, hint: 'Ground roll · up to 20 m' },
+  putter: { label: 'Putter', speed: 18.5, loft: 0, hint: 'Ground roll · up to 20 m' },
 };
 export const GRAVITY = 9.81;
 export const SERVER_TICK_RATE = 20;
@@ -54,6 +58,15 @@ export function surfaceAt(position: Vec3): Surface {
   return Math.abs(x - 90) < 18 ? 'fairway' : 'rough';
 }
 export const surfaceDrag: Record<Surface, number> = { green: 1.6, fairway: 2.8, rough: 5.5, water: 5.5, oob: 5.5 };
+export const surfaceMaterial: Record<Surface, { friction: number; restitution: number }> = {
+  green: { friction: 0.95, restitution: 0.06 }, fairway: { friction: 0.65, restitution: 0.14 },
+  rough: { friction: 0.95, restitution: 0.03 }, water: { friction: 0.95, restitution: 0.03 }, oob: { friction: 0.95, restitution: 0.03 },
+};
+export function groundVelocity(velocity: Vec3, surface: Surface, timeStep: number): Vec3 {
+  const speed = Math.hypot(velocity[0], velocity[2]);
+  const factor = speed > 0 ? Math.max(0, 1 - surfaceDrag[surface] * timeStep / speed) : 0;
+  return [velocity[0] * factor, velocity[1], velocity[2] * factor];
+}
 export function scoreLabel(strokes: number): string {
   const difference = strokes - COURSE.par;
   if (strokes === 1) return 'Hole in one';
