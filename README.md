@@ -41,7 +41,10 @@ See [Google integration notes](docs/google-maps-review.md) for setup and limits.
 
 | Action | Desktop | Phone |
 | --- | --- | --- |
-| Walk the hub | WASD or arrow keys | Drag the lower-left joystick |
+| Walk the hub, course, or mapped streets | WASD or arrow keys; forward, back, left, right relative to the camera | Drag the lower-left joystick |
+| Jump | Space or Jump button | Jump button; works while moving |
+| Crouch | Hold C, or toggle Crouch button | Toggle Crouch button; slower movement and a shorter collision capsule |
+| Punch | F or Punch button | Punch button; movable practice crates react to a nearby hit |
 | Look around | Drag the world | Drag the world |
 | Find an address or golf course | Global map → type a location → choose a dropdown suggestion (or ↓/↑ + Enter) | Tap a suggestion; USA, Canada, Taiwan filters |
 | Capture building or area details | Phone → Capture, or Map → Capture building or area | Choose Exterior / Interior / Area; take photos or video, add floor/room labels and save locally |
@@ -53,7 +56,7 @@ See [Google integration notes](docs/google-maps-review.md) for setup and limits.
 | Set your appearance | Phone → Settings → Your appearance; Face / Full body preview, drag to turn | Same touch preview and color controls |
 | Place furniture | Home → choose a piece → click the lot pad | Choose a piece → tap the pad |
 | Move / rotate furniture | Select and drag; Rotate 90° | Select and drag; Rotate 90° |
-| Swing | Hold mouse or Space, release, then tap/press at meter center | Hold Swing, release, then tap at center |
+| Swing | Hold mouse or E, release, then tap/press E at meter center | Hold Swing, release, then tap at center; open its club button for club/aim options |
 
 Home includes an oak chair, garden table, and fern planter. Place all three,
 drag and rotate them, and reload to verify the layout. The navigation shortcuts
@@ -64,6 +67,15 @@ slider offsets that direction. Hold about 1.2 seconds for full power, release
 to start the face meter, then tap near its center. If you wait, the meter
 automatically strikes with the resulting face error. Wait for the ball to
 settle before your next shot; your golfer moves beside the new lie automatically.
+You can walk, jump, crouch, and punch on the course between shots. Stand within
+2.6 meters of the lie to swing, or choose **Return to ball**. Movement actions
+pause during the two-phase swing. Space always jumps; E is the swing shortcut.
+Walking or punching cannot knock the scored ball around. Jumping uses gravity;
+solid walls, building footprints, roofs, and tree trunks block movement.
+The capsule shrinks for crouching and remains crouched under a low ceiling.
+Practice crates beside the clubhouse and tee can be pushed and punched; their
+local physics resets on reload. Footsteps, landings, and impacts have brief
+visual effects. Actions are local; multiplayer combat/damage is not implemented.
 The flight camera follows the ball without turning back toward the cup mid-shot.
 Open **Scorecard** on the hole panel for par, stroke count, and a shot/penalty log;
 the final score against par appears on hole-out. The live card is also in Phone → Scores.

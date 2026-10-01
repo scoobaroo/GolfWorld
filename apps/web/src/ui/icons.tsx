@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-export type IconName = 'flag' | 'phone' | 'home' | 'map' | 'scores' | 'settings' | 'inventory' | 'friends' | 'shop' | 'close' | 'arrow' | 'building' | 'office' | 'medical' | 'school' | 'food' | 'landmark' | 'factory' | 'pin' | 'camera' | 'video';
+export type IconName = 'flag' | 'phone' | 'home' | 'map' | 'scores' | 'settings' | 'inventory' | 'friends' | 'shop' | 'close' | 'arrow' | 'building' | 'office' | 'medical' | 'school' | 'food' | 'landmark' | 'factory' | 'pin' | 'camera' | 'video' | 'jump' | 'crouch' | 'punch';
 const paths: Record<IconName, ReactNode> = {
   flag: <><path d="M5 21V3m0 0 14 5-14 5" /><path d="M3 21h7" /></>,
   phone: <><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 5h4m-3 14h2" /></>,
@@ -22,6 +22,9 @@ const paths: Record<IconName, ReactNode> = {
   pin: <><path d="M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 1 1 14 0Z" /><circle cx="12" cy="9" r="2" /></>,
   camera: <><path d="M3 7h4l2-3h6l2 3h4v14H3Z" /><circle cx="12" cy="13" r="4" /></>,
   video: <><rect x="3" y="5" width="12" height="14" rx="2" /><path d="m15 9 6-3v12l-6-3Z" /></>,
+  jump: <><circle cx="12" cy="4" r="2" /><path d="m5 11 7-3 7 3m-7-3v6m0 0-4 5m4-5 4 5M4 22h16" /></>,
+  crouch: <><circle cx="13" cy="5" r="2" /><path d="m11 9-4 5 6 3 4 4m-6-12 5 4 4-2M7 14l-3 7h6" /></>,
+  punch: <><path d="M4 12V7a2 2 0 0 1 4 0v3-6a2 2 0 0 1 4 0v6-5a2 2 0 0 1 4 0v5-3a2 2 0 0 1 4 0v8l-3 5H8l-4-8Zm4 8v2m9-2v2" /></>,
 };
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }): ReactNode {
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;

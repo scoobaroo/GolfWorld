@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Instances, Instance } from '@react-three/drei';
-import { RigidBody, CuboidCollider, CapsuleCollider, type RapierRigidBody } from '@react-three/rapier';
-import { DirectionalLight, Group, Vector3 } from 'three';
-import { clamp, COURSE } from '@golfworld/shared';
+import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier';
+import { DirectionalLight, Vector3 } from 'three';
+import { COURSE } from '@golfworld/shared';
 import { useGame } from '../app/store';
-import { controls } from './input';
 import { HomeLot } from '../home/home-lot';
 import { GolfBall } from '../golf/golf-ball';
-import { GolfCameraRig } from '../golf/golf-camera';
-import { HumanAvatar, type AvatarMotion } from './human-avatar';
+import { PlayerAvatar } from './player-avatar';
+import { PracticeProps } from './practice-props';
 
 function Block({ position, scale, color }: { position: [number, number, number]; scale: [number, number, number]; color: string }): ReactNode {
   return <mesh position={position} scale={scale} receiveShadow><boxGeometry /><meshStandardMaterial color={color} /></mesh>;
@@ -17,79 +16,10 @@ function Block({ position, scale, color }: { position: [number, number, number];
 function Trees(): ReactNode {
   const trees = useMemo(() => Array.from({ length: 70 }, (_, index) => ({ x: index < 14 ? Math.cos(index * 1.8) * 42 : (index % 2 ? 40 : 151) + Math.sin(index * 2) * 6, z: index < 14 ? Math.sin(index * 1.8) * 40 + 8 : -(index - 14) * 7, scale: 1 + (index % 4) * 0.25 })), []);
   return <>
+    <RigidBody type="fixed" colliders={false}>{trees.map((tree, i) => <CylinderCollider key={i} args={[1.5, 0.4]} position={[tree.x, 1.5, tree.z]} />)}</RigidBody>
     <Instances limit={70}><cylinderGeometry args={[0.22, 0.4, 3, 6]} /><meshStandardMaterial color="#7c6845" />{trees.map((tree, index) => <Instance key={index} position={[tree.x, 1.5, tree.z]} />)}</Instances>
     <Instances limit={70}><icosahedronGeometry args={[2.4, 0]} /><meshStandardMaterial color="#40794f" />{trees.map((tree, index) => <Instance key={index} position={[tree.x, 4.5, tree.z]} scale={[tree.scale, tree.scale * 1.25, tree.scale]} />)}</Instances>
   </>;
-}
-function Avatar({ renderedBall }: { renderedBall: Vector3 }): ReactNode {
-  const body = useRef<RapierRigidBody>(null);
-  const model = useRef<Group>(null);
-  const phoneOpen = useGame((state) => state.phoneOpen);
-  const mode = useGame((state) => state.mode);
-  const appearance = useGame((state) => state.appearance);
-  const cameraPosition = useMemo(() => new Vector3(), []);
-  const target = useMemo(() => new Vector3(), []);
-  const cameraFocus = useMemo(() => new Vector3(0, 1.4, 5), []);
-  const golfCamera = useMemo(() => new GolfCameraRig(), []);
-  const motion = useRef<AvatarMotion>({ speed: 0 });
-  const position = useRef({ x: 0, y: 1, z: 9 });
-  useEffect(() => {
-    golfCamera.reset();
-    if (mode === 'hub') {
-      position.current = { x: 0, y: 1, z: 9 }; body.current?.setTranslation(position.current, true);
-      if (model.current) model.current.rotation.y = Math.PI;
-    }
-  }, [mode, golfCamera]);
-  useFrame(({ camera }, delta) => {
-    const state = useGame.getState();
-    const ball = state.ball;
-    const step = Math.min(delta, 0.04);
-    motion.current.speed = 0;
-    if (state.mode === 'hub' && !state.phoneOpen) {
-      const keys = controls.keys;
-      let forward = controls.z + (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
-      let side = controls.x + (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
-      const length = Math.max(1, Math.hypot(side, forward)); forward /= length; side /= length;
-      const moveX = (side * Math.cos(controls.yaw) - forward * Math.sin(controls.yaw)) * step * 2.2;
-      const moveZ = (-forward * Math.cos(controls.yaw) - side * Math.sin(controls.yaw)) * step * 2.2;
-      const nextX = clamp(position.current.x + moveX, -42, 150);
-      const nextZ = clamp(position.current.z + moveZ, -375, 40);
-      const blocked = nextX > -10 && nextX < 10 && nextZ > -26 && nextZ < -13;
-      if (!blocked) { position.current.x = nextX; position.current.z = nextZ; motion.current.speed = step > 0 ? Math.hypot(moveX, moveZ) / step : 0; }
-      body.current?.setNextKinematicTranslation(position.current);
-      if (model.current && Math.abs(moveX) + Math.abs(moveZ) > 0.001) {
-        const heading = Math.atan2(moveX, moveZ);
-        const difference = Math.atan2(Math.sin(heading - model.current.rotation.y), Math.cos(heading - model.current.rotation.y));
-        model.current.rotation.y += difference * (1 - Math.exp(-delta * 12));
-      }
-    }
-    if (state.mode === 'golf') {
-      // Stay at the launch lie in flight, then take a stance beside the settled ball.
-      if (state.ballAtRest) {
-        const heading = Math.atan2(COURSE.cup[0] - ball[0], ball[2] - COURSE.cup[2]) + state.aim;
-        position.current = { x: ball[0] - Math.cos(heading) * 1.5 - Math.sin(heading) * 0.6, y: 1, z: ball[2] - Math.sin(heading) * 1.5 + Math.cos(heading) * 0.6 };
-        body.current?.setTranslation(position.current, true);
-        if (model.current) model.current.rotation.y = Math.PI - heading;
-      }
-      if (model.current) model.current.position.y = 0;
-    }
-    if (state.mode === 'home') {
-      cameraPosition.set(-15, 22, 18); target.set(-15, 0, 0);
-    } else if (state.mode === 'golf') {
-      golfCamera.update(camera, state.ballAtRest ? cameraPosition.set(...ball) : renderedBall, state.shot, state.ballAtRest, state.aim, delta);
-      return;
-    } else {
-      cameraPosition.set(position.current.x + Math.sin(controls.yaw) * 6.5, 3 + controls.pitch * 4, position.current.z + Math.cos(controls.yaw) * 6.5);
-      target.set(position.current.x - Math.sin(controls.yaw) * 4, 1.4, position.current.z - Math.cos(controls.yaw) * 4);
-    }
-    const blend = 1 - Math.exp(-Math.min(delta, 0.1) * 8);
-    camera.position.lerp(cameraPosition, blend); cameraFocus.lerp(target, blend); camera.lookAt(cameraFocus);
-  });
-  return <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, 1, 9]}><CapsuleCollider args={[0.5, 0.3]} />
-    <group ref={model} name="golfer">
-      <HumanAvatar appearance={appearance} phoneOpen={phoneOpen} motion={motion} />
-    </group>
-  </RigidBody>;
 }
 function Daylight({ renderedBall }: { renderedBall: Vector3 }): ReactNode {
   const light = useRef<DirectionalLight>(null);
@@ -130,6 +60,6 @@ export function World(): ReactNode {
     <mesh position={[COURSE.cup[0], 0.085, COURSE.cup[2]]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[COURSE.cupRadius, 24]} /><meshBasicMaterial color="#203d2d" /></mesh>
     <mesh position={[90, 1.7, COURSE.cup[2]]}><cylinderGeometry args={[0.035, 0.035, 3.4, 8]} /><meshStandardMaterial color="#f9f4de" /></mesh>
     <Block position={[90.6, 3, COURSE.cup[2]]} scale={[1.2, 0.65, 0.05]} color="#db854c" />
-    <Trees /><HomeLot /><Avatar renderedBall={renderedBall} /><GolfBall renderedPosition={renderedBall} />
+    <Trees /><HomeLot /><PracticeProps /><PlayerAvatar initial={[0, 0.02, 9]} bounds={{ minX: -42, maxX: 150, minZ: -375, maxZ: 40 }} walkable={(x, z) => !(x > 110 && x < 146 && z > -222 && z < -158)} renderedBall={renderedBall} /><GolfBall renderedPosition={renderedBall} />
   </>;
 }

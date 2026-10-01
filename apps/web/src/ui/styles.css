@@ -40,13 +40,21 @@ p { font-size: 13px; line-height: 1.65; }
 .world-nav button { padding: 12px 17px; background: transparent; }
 .world-nav button.active { background: #e4ebdc; }
 kbd { display: inline-grid; place-items: center; font-family: inherit; font-size: 9px; background: #173e320c; border: 1px solid #173e321f; width: 18px; height: 18px; border-radius: 4px; }
-.desktop-controls { position: absolute; left: 28px; bottom: 35px; display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.desktop-controls { position: absolute; left: 28px; bottom: 80px; display: flex; align-items: center; gap: 4px; font-size: 11px; }
 .desktop-controls span { margin-left: 5px; }
 .desktop-controls kbd { background: #fbf8efad; width: 24px; height: 24px; }
 .joystick-wrap { display: none; position: absolute; bottom: max(98px, calc(env(safe-area-inset-bottom) + 86px)); left: 24px; text-align: center; }
 .joystick { width: 106px; height: 106px; display: grid; place-items: center; background: #fff6e438; border: 1px solid #fff6e489; border-radius: 50%; touch-action: none; }
 .joystick span { width: 44px; height: 44px; border-radius: 50%; background: #fbf8efbc; border: 1px solid #fff6e4; box-shadow: 0 3px 15px #24442a18; }
 .joystick-wrap small { font-size: 8px; font-weight: 700; letter-spacing: 2px; display: block; margin-top: 8px; }
+.avatar-actions { position: absolute; left: 28px; bottom: max(125px, calc(env(safe-area-inset-bottom) + 110px)); display: flex; gap: 7px; }
+.avatar-actions button { background: #fbf8efe6; border: 1px solid #ffffffa8; padding: 11px 13px; box-shadow: 0 4px 16px #183c2514; touch-action: none; user-select: none; -webkit-user-select: none; }
+.avatar-actions button[aria-pressed="true"] { background: var(--green); color: var(--paper); }
+.avatar-actions kbd { width: auto; min-width: 18px; padding: 0 4px; }
+.avatar-action-status { position: absolute; bottom: -22px; left: 2px; font-size: 10px; color: #2a4d3d; background: #fbf8efcc; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+.return-to-ball { width: 100%; margin-top: 7px; }
+.swing-actions { display: flex; align-items: stretch; gap: 8px; }
+.shot-options-toggle { display: none; }
 .row, .row-between { display: flex; align-items: center; gap: 8px; }
 .row-between { justify-content: space-between; }
 .hole-card { margin-top: 18px; width: 320px; padding: 20px; }
@@ -230,7 +238,17 @@ button.map-capture-marker:hover { background: #6e5d88; }
 .capture-library { border-top: 1px solid #dce3d2; margin-top: 22px; padding-top: 16px; }.capture-library h2 { font-size: 24px; }.capture-library ul { padding: 0; margin: 12px 0; list-style: none; }.capture-library li { display: flex; align-items: center; gap: 5px; margin-top: 6px; }.capture-library li button { padding: 10px; font-size: 10px; }.capture-library li button:first-child { flex: 1; min-width: 0; text-align: left; justify-content: flex-start; }.capture-library li button:first-child span { min-width: 0; overflow-wrap: anywhere; }.capture-library strong, .capture-library small { display: block; }.capture-library small { font-weight: 400; color: #68785f; margin-top: 3px; }.capture-library svg { flex-shrink: 0; }
 @media (max-width: 650px) { .global-map-shortcut { top: 82px; right: 18px; padding: 8px; min-height: 44px; font-size: 10px; }.geo-info { width: min(280px, 80vw); padding: 12px; }.geo-info h2 { font-size: 20px; }.geo-info p { font-size: 10px; }.map-expanded { inset: 8px; padding: 12px; }.map-expanded h2 { font-size: 22px; } }
 .loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #fff9e6; background: var(--green); }
-@media (pointer: coarse) { .joystick-wrap { display: block; }.desktop-controls { display: none; } }
+@media (pointer: coarse) {
+  .joystick-wrap { display: block; }.desktop-controls { display: none; }
+  .avatar-actions { left: auto; right: max(16px, env(safe-area-inset-right)); bottom: max(126px, calc(env(safe-area-inset-bottom) + 110px)); gap: 5px; }
+  .avatar-actions button { width: 49px; min-height: 58px; padding: 7px 3px; flex-direction: column; gap: 4px; font-size: 9px; }
+  .avatar-actions kbd { display: none; }
+  .avatar-action-status { left: auto; right: 0; font-size: 9px; }
+  .swing-panel:not(.shot-options-open) .shot-fields, .swing-panel:not(.shot-options-open)[data-phase="idle"] .swing-meter { display: none; }
+  .swing-panel .row-between { margin-bottom: 8px; }
+  .shot-options-toggle { display: inline-flex; flex-direction: column; flex: 0 0 66px; gap: 4px; padding: 7px 4px; font-size: 9px; }
+  .swing-panel:not(.shot-options-open) { padding: 12px; }
+}
 @media (max-width: 720px) {
   .hud { padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
   .brand-mark { height: 38px; width: 38px; }.brand strong { font-size: 23px; }.brand small { font-size: 8px; }
@@ -250,5 +268,13 @@ button.map-capture-marker:hover { background: #6e5d88; }
   .welcome { margin-top: 10px; padding: 16px; width: 245px; }.welcome h1 { font-size: 26px; }.welcome-meta { display: none; }.welcome p { margin-top: 8px; }.welcome .primary { margin-top: 10px; }
   .swing-panel { width: 290px; bottom: 85px; padding: 14px; }.hole-card { width: 250px; padding: 12px; }.world-nav { left: 16px; transform: none; width: 320px; bottom: 16px; }
   .desktop-controls { display: none; }.joystick-wrap { left: 30px; bottom: 88px; }
+}
+@media (pointer: coarse) and (min-height: 621px) {
+  .hud[data-mode="golf"] .swing-panel { bottom: max(255px, calc(env(safe-area-inset-bottom) + 235px)); }
+}
+@media (pointer: coarse) and (max-height: 620px) and (orientation: landscape) {
+  .avatar-actions { left: 170px; right: auto; bottom: 118px; }
+  .avatar-actions button { width: 44px; }
+  .hud[data-mode="golf"] .swing-panel { max-height: calc(100dvh - 115px); overflow-y: auto; }
 }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }

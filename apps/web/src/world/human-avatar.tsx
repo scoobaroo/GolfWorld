@@ -4,8 +4,9 @@ import { useAnimations, useGLTF } from '@react-three/drei';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { Color, FrontSide, Mesh, MeshStandardMaterial, Quaternion, SkinnedMesh, Vector3 } from 'three';
 import type { AvatarAppearance } from '@golfworld/shared';
+import { AvatarPose } from './avatar-pose';
+import type { AvatarMotion } from './character-motor';
 
-export interface AvatarMotion { speed: number; }
 const MODEL_URL = '/models/golfer.glb';
 const SKIN_ALBEDO = new Color('#775439');
 
@@ -54,6 +55,9 @@ export function HumanAvatar({ appearance, phoneOpen = false, motion, feetY = -1 
     return copy;
   }, [loaded.scene]);
   const { actions } = useAnimations(loaded.animations, scene);
+  const pose = useMemo(() => new AvatarPose(scene), [scene]);
+  // Restore additive bones before Drei's animation mixer runs at priority 0.
+  useFrame(() => pose.restore(), -0.5);
   const currentClip = useRef('');
   useEffect(() => { currentClip.current = ''; }, [actions]);
   useFrame(() => {
@@ -70,6 +74,7 @@ export function HumanAvatar({ appearance, phoneOpen = false, motion, feetY = -1 
     const walk = actions.walk;
     // Match the animation stride to movement rather than sliding at the old hub speed.
     if (walk && next === 'walk') walk.timeScale = Math.min(1.65, Math.max(0.7, (motion?.current.speed ?? 0) / 1.4));
+    if (motion) pose.apply(motion.current);
   });
   useEffect(() => {
     scene.traverse((object) => {

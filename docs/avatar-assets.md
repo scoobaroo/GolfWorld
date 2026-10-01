@@ -27,6 +27,12 @@ runtime. Retarget idle/walk rotations against the actual skin bind matrices,
 including bone-axis/roll correction and the sources' different coordinate
 systems. Freeze hips/root motion so Rapier controls the position and heading.
 The idle and walk clips crossfade, and walking speed follows player movement.
+Jump, crouch, landing, and right-hand punch poses are procedural overlays on
+this same rig. A two-joint solver bends the legs while keeping the crouching
+feet planted, and extends the punching arm. These poses introduce no additional
+downloaded character or animation assets. Rapier owns the capsule, gravity,
+collision response, and nearby prop impulses; the visual pose does not determine
+authoritative gameplay. They remain starter animations rather than motion capture.
 
 To rebuild after obtaining the pinned inputs, use Python 3 with NumPy:
 

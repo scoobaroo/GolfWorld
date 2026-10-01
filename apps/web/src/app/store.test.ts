@@ -2,7 +2,7 @@ import { beforeEach, describe, it, expect } from 'vitest';
 import { COURSE, defaultAppearance } from '@golfworld/shared';
 import { readSavedData, defaultData, useGame } from './store';
 describe('local persistence and round state', () => {
-  beforeEach(() => { useGame.setState({ ...defaultData, mode: 'golf', strokes: 0, roundEvents: [], ballAtRest: true, shot: null, complete: null, ball: [...COURSE.tee], selectedFurniture: null, placing: null }); });
+  beforeEach(() => { useGame.setState({ ...defaultData, mode: 'golf', phoneOpen: false, swingActive: false, avatar: { position: [88.5, 0.02, 0.6], grounded: true, crouched: false, punching: false }, strokes: 0, roundEvents: [], ballAtRest: true, shot: null, complete: null, ball: [...COURSE.tee], selectedFurniture: null, placing: null }); });
   it('recovers from corrupt, outdated, or unavailable storage', () => {
     expect(readSavedData({ getItem: () => '{broken' })).toEqual(defaultData);
     expect(readSavedData({ getItem: () => JSON.stringify({ profile: { name: 5 } }) })).toEqual(defaultData);
@@ -37,6 +37,7 @@ describe('local persistence and round state', () => {
     const game = useGame.getState();
     game.hit(0.8, 0);
     game.penalty(); game.updateBall([90, 0.04, -180], true);
+    useGame.setState({ avatar: { position: [88.5, 0.02, -179.4], grounded: true, crouched: false, punching: false } });
     game.setClub('iron'); game.hit(0.6, 0);
     expect(useGame.getState().strokes).toBe(3);
     expect(useGame.getState().roundEvents.map((event) => event.strokeIndex)).toEqual([1, 2, 3]);
@@ -51,5 +52,14 @@ describe('local persistence and round state', () => {
     const data = { ...defaultData, appearance: useGame.getState().appearance };
     expect(readSavedData({ getItem: () => JSON.stringify(data) }).appearance.shirtColor).toBe('#1267ab');
     expect(readSavedData({ getItem: () => JSON.stringify({ ...data, appearance: { ...data.appearance, skinColor: 'invalid' } }) })).toEqual(defaultData);
+  });
+  it('requires a standing golfer beside the lie and ignores actions while the phone is open', () => {
+    const avatar = useGame.getState().avatar!;
+    for (const blocked of [{ ...avatar, position: [0, 0.02, 9] as [number, number, number] }, { ...avatar, grounded: false }, { ...avatar, crouched: true }, { ...avatar, punching: true }]) {
+      useGame.setState({ avatar: blocked }); useGame.getState().hit(1, 0);
+      expect(useGame.getState().strokes).toBe(0);
+    }
+    useGame.setState({ avatar, phoneOpen: true }); useGame.getState().hit(1, 0); expect(useGame.getState().strokes).toBe(0);
+    useGame.setState({ phoneOpen: false }); useGame.getState().hit(1, 0); expect(useGame.getState().strokes).toBe(1);
   });
 });

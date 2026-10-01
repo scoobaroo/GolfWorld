@@ -3,7 +3,7 @@ import { clamp } from '@golfworld/shared';
 import { Hud } from '../ui/hud';
 import { Phone } from '../phone/phone';
 import { useGame } from './store';
-import { controls, resetControls } from '../world/input';
+import { controls, resetControls, isTextInputEvent, isGoogleInputEvent } from '../world/input';
 import { useGeo } from '../geo/store';
 import { useWorldLocation } from '../geo/device-location';
 const WorldScene = lazy(() => import('../world/world-scene'));
@@ -26,17 +26,22 @@ export function App(): ReactNode {
   useEffect(() => { void useGeo.getState().restore(); }, []);
   useEffect(() => {
     const keyDown = (event: KeyboardEvent): void => {
-      // Closed shadow inputs retarget keyboard events to their Google widget host.
-      if ([event.target, document.activeElement].some((target) => target instanceof Element && target.closest('gmp-basic-place-autocomplete, gmp-place-autocomplete'))) return;
+      if (isGoogleInputEvent(event)) return;
       if (event.code === 'Escape') useGame.getState().togglePhone(false);
-      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (isTextInputEvent(event)) return;
       if (event.code === 'KeyP' && !event.repeat) useGame.getState().togglePhone();
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
+      if (useGame.getState().phoneOpen || useGame.getState().mode === 'home') return;
+      if (event.code === 'Space' && event.target instanceof Element && event.target.closest('button, summary, a')) return;
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyC', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
+      if (!event.repeat && event.code === 'Space') controls.jump = true;
+      if (!event.repeat && event.code === 'KeyF') controls.punch = true;
       controls.keys.add(event.code);
     };
     const keyUp = (event: KeyboardEvent): void => { controls.keys.delete(event.code); };
     window.addEventListener('keydown', keyDown); window.addEventListener('keyup', keyUp); window.addEventListener('blur', resetControls);
-    return () => { window.removeEventListener('keydown', keyDown); window.removeEventListener('keyup', keyUp); window.removeEventListener('blur', resetControls); };
+    const visibility = (): void => { if (document.hidden) resetControls(); };
+    document.addEventListener('visibilitychange', visibility);
+    return () => { window.removeEventListener('keydown', keyDown); window.removeEventListener('keyup', keyUp); window.removeEventListener('blur', resetControls); document.removeEventListener('visibilitychange', visibility); };
   }, []);
   useEffect(resetControls, [phoneOpen, mode]);
   return <main className="relative h-dvh w-screen overflow-hidden bg-emerald-950" data-world-ready={worldReady}>

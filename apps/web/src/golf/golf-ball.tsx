@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { BallCollider, RigidBody, useBeforePhysicsStep, type RapierRigidBody, type RapierCollider } from '@react-three/rapier';
+import { BallCollider, RigidBody, useBeforePhysicsStep, interactionGroups, type RapierRigidBody, type RapierCollider } from '@react-three/rapier';
 import { Line } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { type Mesh, type Vector3 } from 'three';
@@ -77,8 +77,8 @@ export function GolfBall({ renderedPosition }: { renderedPosition: Vector3 }): R
   });
   const heading = Math.atan2(COURSE.cup[0] - ball[0], ball[2] - COURSE.cup[2]) + aim;
   return <>
-    <RigidBody ref={body} colliders={false} position={COURSE.tee} ccd enabledRotations={[false, false, false]} linearDamping={0.02} restitution={0.12} friction={0.7}>
-      <BallCollider ref={collider} args={[COURSE.ballRadius]} mass={0.0459} friction={surfaceMaterial.fairway.friction} restitution={surfaceMaterial.fairway.restitution} />
+    <RigidBody ref={body} colliders={false} position={COURSE.tee} userData={{ kind: 'golf-ball' }} ccd enabledRotations={[false, false, false]} linearDamping={0.02} restitution={0.12} friction={0.7}>
+      <BallCollider ref={collider} args={[COURSE.ballRadius]} collisionGroups={interactionGroups(3, [1, 2, 3])} mass={0.0459} friction={surfaceMaterial.fairway.friction} restitution={surfaceMaterial.fairway.restitution} />
       <mesh ref={mesh} name="golf-ball" visible={mode === 'golf'}><sphereGeometry args={[0.11, 12, 8]} /><meshStandardMaterial color="#fffef5" /></mesh>
     </RigidBody>
     {mode === 'golf' && ballAtRest && !phoneOpen && <>
