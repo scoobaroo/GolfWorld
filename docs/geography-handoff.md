@@ -8,9 +8,14 @@ renderer was added. No paid service was purchased.
 
 ## What works
 
-Global map in the HUD and Phone → Map: submit a street address, city/landmark,
-or golf course; filter USA, Canada, or Taiwan; see named/addressed matches;
-click a result or its selected marker to travel. Chinese input is preserved.
+Global map in the HUD and Phone → Map: type a street address, city/landmark,
+or golf course; filter USA, Canada, or Taiwan; choose a named/addressed dropdown
+suggestion to travel. Suggestions show source-based icons and labels for homes,
+apartments, offices, shops, food, healthcare, education, landmarks, industry,
+golf courses and generic locations. Unknown types use a neutral pin. Tap/click
+or use up/down and Enter; Escape dismisses the dropdown before closing the
+phone. Search also submits explicitly. Chinese input composition is preserved
+and does not issue searches until composition finishes.
 Pan the map with mouse/touch, use zoom buttons, World, My avatar, region
 shortcuts, and the larger map. The blue marker is the avatar's in-world
 position, not the device's GPS position. The fictional Meadow practice slice
@@ -56,9 +61,12 @@ Hono or set an explicit API URL.
 
 - `GEOCODER_URL`: Photon-compatible search endpoint. Local default is
   `https://photon.komoot.io/api/`. Country filters are sent to the provider and
-  results are validated/filtered again. Explicit submit rather than per-key
-  queries; one outbound search per 1.1 seconds per server; bounded in-memory
-  result cache. No search-history persistence or device-location permission.
+  results are validated/filtered again. Suggestions require at least three
+  characters and a 1.2-second typing pause; explicit Search bypasses that pause.
+  The client spaces outbound requests at least 1.15 seconds apart, cancels old
+  queries, ignores stale responses and caches up to 20 results during the map
+  session. The server allows one outbound search per 1.1 seconds and maintains
+  a bounded result cache. No search-history persistence or device-location permission.
 - `GEODATA_URL`: Overpass-compatible interpreter endpoint. Local default is
   `https://overpass-api.de/api/interpreter`. Numeric bounded queries only,
   one request at a time, five-second minimum spacing, 20-second query budget,
@@ -91,7 +99,9 @@ country filtering, address precision, height units, courtyards, safe arrival,
 API validation, cache/rate limits, and upstream failures. Browser scenarios
 cover search/travel in all three regions, current-avatar marker, larger map,
 reload, failure recovery, and returning to golf across desktop/Android/iPhone/
-iPad emulation. Browser fixtures make those tests deterministic; live provider
+iPad emulation. Search regressions cover debouncing, source icons (including
+residential streets), keyboard selection/dismissal, empty/error states, stale
+responses and Chinese input composition. Browser fixtures make those tests deterministic; live provider
 checks are recorded separately during implementation.
 
 Grok's next decisions: dedicated provider/import budget; geographic coverage

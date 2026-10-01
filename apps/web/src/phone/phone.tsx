@@ -33,7 +33,7 @@ export function Phone(): ReactNode {
   const app = apps.find((entry) => entry.id === current);
   return <div className="phone-backdrop"><div className="phone" ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-label="In-world phone" onKeyDown={(event) => {
     if (event.key !== 'Tab') return;
-    const focusable = panel.current?.querySelectorAll<HTMLElement>('button, input, [tabindex="0"]');
+    const focusable = panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]');
     if (!focusable?.length) return;
     const first = focusable[0]; const last = focusable[focusable.length - 1];
     if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { event.preventDefault(); last.focus(); }

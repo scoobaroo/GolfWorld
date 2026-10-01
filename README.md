@@ -33,7 +33,7 @@ and full PWA behavior; ordinary guest play works over LAN HTTP.
 | --- | --- | --- |
 | Walk the hub | WASD or arrow keys | Drag the lower-left joystick |
 | Look around | Drag the world | Drag the world |
-| Find an address or golf course | Global map → enter a location → Search → click a result | Same touch controls; USA, Canada, Taiwan filters |
+| Find an address or golf course | Global map → type a location → choose a dropdown suggestion (or ↓/↑ + Enter) | Tap a suggestion; USA, Canada, Taiwan filters |
 | Open phone | P or Phone button | Phone button |
 | Close phone | Esc or close button | Close button or swipe down from phone top |
 | Move between areas | Hub / Home / Golf buttons | Same touch controls |
