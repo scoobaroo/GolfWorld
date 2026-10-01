@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { COURSE, savedDataSchema, clamp, type Profile, type Furniture, type FurnitureSku, type Vec3, type Score, type SavedData, type ClubId, type ShotIntent } from '@golfworld/shared';
+import { COURSE, savedDataSchema, defaultAppearance, clamp, type AvatarAppearance, type Profile, type Furniture, type FurnitureSku, type Vec3, type Score, type SavedData, type ClubId, type ShotIntent, type StrokeEvent } from '@golfworld/shared';
+import type { AvatarStatus } from '../world/character-motor';
 
 export const STORAGE_KEY = 'golfworld.local.v1';
-export const defaultData: SavedData = { profile: { name: 'Guest golfer', invertY: false }, furniture: [], scores: [] };
+export const defaultData: SavedData = { profile: { name: 'Guest golfer', invertY: false }, appearance: defaultAppearance, furniture: [], scores: [] };
 export function readSavedData(storage: Pick<Storage, 'getItem'>): SavedData {
   try {
     const parsed = savedDataSchema.safeParse(JSON.parse(storage.getItem(STORAGE_KEY) ?? 'null'));
@@ -11,21 +12,35 @@ export function readSavedData(storage: Pick<Storage, 'getItem'>): SavedData {
 }
 let saved = defaultData;
 try { saved = readSavedData(localStorage); } catch { /* Private browsing can deny storage. */ }
-export type Mode = 'hub' | 'home' | 'golf';
+export type Mode = 'hub' | 'home' | 'golf' | 'explore';
 type ShotCommand = ShotIntent & { id: number };
+export function canPlayShot(avatar: AvatarStatus | null, ball: Vec3): boolean {
+  return !!avatar && avatar.grounded && !avatar.crouched && !avatar.punching &&
+    Math.hypot(avatar.position[0] - ball[0], avatar.position[2] - ball[2]) <= 2.6 && Math.abs(avatar.position[1] - ball[1]) < 0.4;
+}
 interface GameStore extends SavedData {
-  mode: Mode; phoneOpen: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
-  ball: Vec3; ballAtRest: boolean; strokes: number; club: ClubId; aim: number; round: number; shot: ShotCommand | null; complete: Score | null; notice: string;
+  mode: Mode; phoneOpen: boolean; phonePage: 'home-screen' | 'map' | 'capture'; worldReady: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
+  ball: Vec3; ballAtRest: boolean; strokes: number; roundEvents: StrokeEvent[]; club: ClubId; aim: number; round: number; shot: ShotCommand | null; complete: Score | null; notice: string;
+  avatar: AvatarStatus | null; swingActive: boolean; stanceRequest: number;
   setMode(mode: Mode): void; togglePhone(open?: boolean): void; setProfile(profile: Profile): void;
+  openMap(): void;
+  openCapture(): void;
+  returnToBall(): void;
+  setAppearance(appearance: AvatarAppearance): void;
   selectFurniture(id: string | null): void; setPlacing(sku: FurnitureSku | null): void; placeFurniture(pos: Vec3): void; moveFurniture(id: string, pos: Vec3): void; rotateFurniture(): void; removeFurniture(): void;
   setClub(club: ClubId): void; setAim(aim: number): void; hit(power: number, face: number): void; updateBall(ball: Vec3, ballAtRest: boolean): void; penalty(): void; finish(): void; resetRound(): void;
 }
 export const useGame = create<GameStore>((set, get) => ({
-  ...saved, mode: 'hub', phoneOpen: false, storageError: false, selectedFurniture: null, placing: null,
-  ball: [...COURSE.tee], ballAtRest: true, strokes: 0, club: 'driver', aim: 0, round: 0, shot: null, complete: null, notice: '',
-  setMode: (mode) => set({ mode, phoneOpen: false, placing: null, selectedFurniture: null }),
-  togglePhone: (open) => set({ phoneOpen: open ?? !get().phoneOpen }),
+  ...saved, mode: 'hub', phoneOpen: false, phonePage: 'home-screen', worldReady: false, storageError: false, selectedFurniture: null, placing: null,
+  ball: [...COURSE.tee], ballAtRest: true, strokes: 0, roundEvents: [], club: 'driver', aim: 0, round: 0, shot: null, complete: null, notice: '',
+  avatar: null, swingActive: false, stanceRequest: 0,
+  setMode: (mode) => set({ mode, phoneOpen: false, placing: null, selectedFurniture: null, swingActive: false }),
+  togglePhone: (open) => set({ phoneOpen: open ?? !get().phoneOpen, phonePage: 'home-screen', swingActive: false }),
+  openMap: () => set({ phoneOpen: true, phonePage: 'map', swingActive: false }),
+  openCapture: () => set({ phoneOpen: true, phonePage: 'capture', swingActive: false }),
+  returnToBall: () => { if (get().ballAtRest && !get().complete) set({ stanceRequest: get().stanceRequest + 1, swingActive: false }); },
   setProfile: (profile) => set({ profile }),
+  setAppearance: (appearance) => set({ appearance }),
   selectFurniture: (selectedFurniture) => set({ selectedFurniture, placing: null }),
   setPlacing: (placing) => set({ placing, selectedFurniture: null }),
   placeFurniture: (pos) => {
@@ -41,24 +56,30 @@ export const useGame = create<GameStore>((set, get) => ({
   setAim: (aim) => set({ aim }),
   hit: (power, face) => {
     const state = get();
-    if (!state.ballAtRest || state.complete || state.mode !== 'golf') return;
+    if (!state.ballAtRest || state.complete || state.mode !== 'golf' || state.phoneOpen || !canPlayShot(state.avatar, state.ball)) return;
     const heading = Math.atan2(COURSE.cup[0] - state.ball[0], state.ball[2] - COURSE.cup[2]) + state.aim;
-    set({ strokes: state.strokes + 1, ballAtRest: false, shot: { club: state.club, power, face, heading, id: (state.shot?.id ?? 0) + 1 }, notice: '' });
+    const strokeIndex = state.strokes + 1;
+    set({ strokes: strokeIndex, roundEvents: [...state.roundEvents, { strokeIndex, club: state.club, power, face, penalty: false }], ballAtRest: false, swingActive: false, shot: { club: state.club, power, face, heading, id: (state.shot?.id ?? 0) + 1 }, notice: '' });
   },
   updateBall: (ball, ballAtRest) => set({ ball, ballAtRest }),
-  penalty: () => set({ strokes: get().strokes + 1, notice: 'Water or out of bounds · +1 penalty · dropped at your last lie' }),
+  penalty: () => {
+    const state = get();
+    if (state.complete || state.ballAtRest) return;
+    const strokeIndex = state.strokes + 1;
+    set({ strokes: strokeIndex, roundEvents: [...state.roundEvents, { strokeIndex, club: state.shot?.club ?? state.club, power: 0, face: 0, penalty: true }], notice: 'Water or out of bounds · +1 penalty · dropped at your last lie' });
+  },
   finish: () => {
     const state = get();
     if (state.complete || state.strokes === 0) return;
     const score: Score = { id: crypto.randomUUID(), name: state.profile.name, strokes: state.strokes, lastClub: state.shot?.club ?? state.club, timestamp: new Date().toISOString(), courseId: COURSE.id };
     set({ complete: score, scores: [score, ...state.scores].slice(0, 100), ballAtRest: true });
   },
-  resetRound: () => set({ round: get().round + 1, ball: [...COURSE.tee], ballAtRest: true, strokes: 0, club: 'driver', aim: 0, shot: null, complete: null, notice: '', mode: 'golf', phoneOpen: false }),
+  resetRound: () => set({ round: get().round + 1, ball: [...COURSE.tee], ballAtRest: true, strokes: 0, roundEvents: [], club: 'driver', aim: 0, shot: null, complete: null, notice: '', mode: 'golf', phoneOpen: false, swingActive: false }),
 }));
 useGame.subscribe((state, previous) => {
-  if (state.profile === previous.profile && state.furniture === previous.furniture && state.scores === previous.scores) return;
+  if (state.profile === previous.profile && state.appearance === previous.appearance && state.furniture === previous.furniture && state.scores === previous.scores) return;
   try {
     // TODO: persist lots and authoritative score events via authenticated API.
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile: state.profile, furniture: state.furniture, scores: state.scores }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile: state.profile, appearance: state.appearance, furniture: state.furniture, scores: state.scores }));
   } catch { if (!state.storageError) useGame.setState({ storageError: true }); }
 });

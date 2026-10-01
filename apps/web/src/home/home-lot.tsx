@@ -3,6 +3,7 @@ import { Plane, Vector3 } from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import type { Furniture } from '@golfworld/shared';
 import { useGame } from '../app/store';
+import { RigidBody, CuboidCollider } from '@react-three/rapier';
 
 function FurnitureModel({ item }: { item: Furniture }): ReactNode {
   const mode = useGame((state) => state.mode);
@@ -14,7 +15,8 @@ function FurnitureModel({ item }: { item: Furniture }): ReactNode {
     if (!drag.current) return; event.stopPropagation();
     if (event.ray.intersectPlane(plane, point)) useGame.getState().moveFurniture(item.id, [point.x, 0, point.z]);
   };
-  return <group position={item.pos} rotation={[0, item.rot, 0]} onPointerDown={(event) => {
+  const size: [number, number, number] = item.sku === 'furn.table.round' ? [0.9, 0.52, 0.9] : item.sku === 'furn.chair.midcentury' ? [0.45, 0.65, 0.45] : [0.48, 0.72, 0.48];
+  return <RigidBody type="fixed" colliders={false} position={item.pos} rotation={[0, item.rot, 0]}><CuboidCollider args={size} position={[0, size[1], 0]} /><group onPointerDown={(event) => {
     if (mode !== 'home') return; event.stopPropagation(); drag.current = true;
     useGame.getState().selectFurniture(item.id); (event.target as HTMLElement | null)?.setPointerCapture(event.pointerId);
   }} onPointerMove={move} onPointerUp={(event) => { event.stopPropagation(); drag.current = false; (event.target as HTMLElement | null)?.releasePointerCapture(event.pointerId); }} onPointerCancel={() => { drag.current = false; }}>
@@ -32,7 +34,7 @@ function FurnitureModel({ item }: { item: Furniture }): ReactNode {
       <mesh position={[0, 0.8, 0]} scale={[0.6, 0.8, 0.6]}><icosahedronGeometry args={[0.8, 0]} /><meshStandardMaterial color="#4b8854" /></mesh>
     </>}
     {selected && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.07, 0]}><ringGeometry args={[1.1, 1.2, 32]} /><meshBasicMaterial color="#f8c365" /></mesh>}
-  </group>;
+  </group></RigidBody>;
 }
 export function HomeLot(): ReactNode {
   const furniture = useGame((state) => state.furniture);

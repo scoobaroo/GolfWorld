@@ -11,18 +11,19 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@golfworld/shared": "workspace:*",
     "@golfworld/economy": "workspace:*",
-    "hono": "^4.10.0",
+    "@golfworld/shared": "workspace:*",
     "@hono/node-server": "^1.19.0",
     "drizzle-orm": "^0.44.0",
-    "pg": "^8.16.0"
+    "hono": "^4.10.0",
+    "pg": "^8.16.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/pg": "^8.15.0",
+    "drizzle-kit": "^0.31.0",
     "tsx": "^4.20.0",
-    "vitest": "^3.2.4",
-    "drizzle-kit": "^0.31.0"
+    "vitest": "^3.2.4"
   }
 }

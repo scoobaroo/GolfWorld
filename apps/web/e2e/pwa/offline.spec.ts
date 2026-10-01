@@ -1,0 +1,37 @@
+import { test, expect } from '@playwright/test';
+test('production world and phone load offline after a cached visit', async ({ page, context }) => {
+  const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  await page.reload();
+  await expect(page.locator('main')).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
+  await page.waitForFunction(async () => {
+    const cache = await caches.open('golfworld-v1');
+    const resources = performance.getEntriesByType('resource').map((entry) => entry.name).filter((name) => name.includes('/assets/'));
+    return resources.length > 2 && Boolean(await cache.match('/models/golfer.glb')) && (await Promise.all(resources.map((name) => cache.match(name)))).every(Boolean);
+  });
+  const manifest = await context.request.get('/manifest.webmanifest');
+  expect(await manifest.json()).toMatchObject({ display: 'standalone' });
+  expect((await context.request.get('/icon-192.png')).ok()).toBe(true);
+  expect((await context.request.get('/icon-512.png')).ok()).toBe(true);
+  await context.setOffline(true); await page.reload();
+  await expect(page.locator('main')).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Phone', exact: false }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your appearance' })).toBeVisible();
+  await expect(page.getByRole('img', { name: '3D preview of your avatar; drag to turn' }).locator('canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Phone home', exact: true }).click();
+  await page.getByRole('button', { name: 'Capture', exact: true }).click();
+  await page.getByLabel('Building / place name').fill('Offline exterior draft');
+  await page.getByLabel('Add photo', { exact: true }).setInputFiles('public/icon-192.png');
+  await expect(page.getByRole('img', { name: 'Capture of Offline exterior draft' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save local draft' }).click();
+  await expect(page.getByText('Draft saved on this device.')).toBeVisible();
+  await page.reload(); await expect(page.locator('main')).toHaveAttribute('data-world-ready', 'true', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Phone', exact: false }).click(); await page.getByRole('button', { name: 'Capture', exact: true }).click();
+  await page.getByRole('button', { name: /Offline exterior draft photo/ }).click();
+  await expect(page.getByRole('img', { name: 'Capture of Offline exterior draft' })).toBeVisible();
+  await expect(page.getByText('Camera GPS: unknown')).toBeVisible();
+  expect(errors).toEqual([]);
+});

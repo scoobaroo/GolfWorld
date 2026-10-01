@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-export type IconName = 'flag' | 'phone' | 'home' | 'map' | 'scores' | 'settings' | 'inventory' | 'friends' | 'shop' | 'close' | 'arrow';
+export type IconName = 'flag' | 'phone' | 'home' | 'map' | 'scores' | 'settings' | 'inventory' | 'friends' | 'shop' | 'close' | 'arrow' | 'building' | 'office' | 'medical' | 'school' | 'food' | 'landmark' | 'factory' | 'pin' | 'camera' | 'video' | 'jump' | 'crouch' | 'punch';
 const paths: Record<IconName, ReactNode> = {
   flag: <><path d="M5 21V3m0 0 14 5-14 5" /><path d="M3 21h7" /></>,
   phone: <><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 5h4m-3 14h2" /></>,
@@ -12,6 +12,19 @@ const paths: Record<IconName, ReactNode> = {
   shop: <><path d="M4 9h16v12H4ZM3 9l2-6h14l2 6M8 21v-7h8v7" /></>,
   close: <path d="m6 6 12 12M6 18 18 6" />,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+  building: <><rect x="5" y="3" width="14" height="18" rx="1" /><path d="M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1M11 21v-3h2v3" /></>,
+  office: <><path d="M4 21V3h12v18m0-10h4v10M2 21h20M8 7h4m-4 4h4m-4 4h4m-3 6v-3h2v3" /></>,
+  medical: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M12 6v6m-3-3h6m-5 12v-5h4v5" /></>,
+  school: <><path d="m3 10 9-7 9 7v11H3ZM9 21v-6h6v6M7 11h1m8 0h1" /><circle cx="12" cy="9" r="1" /></>,
+  food: <><path d="M5 3v7m3-7v7m3-7v7M5 7h6m-6 3c0 3 6 3 6 0M8 13v8m11-18c-4 2-4 8 0 9V3Zm0 9v9" /></>,
+  landmark: <><path d="m3 8 9-5 9 5ZM5 8v10m5-10v10m4-10v10m5-10v10M3 18h18M2 21h20" /></>,
+  factory: <><path d="M3 21V10l6 4v-4l6 4V3h4l2 18ZM7 17h1m4 0h1m4 0h1" /></>,
+  pin: <><path d="M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 1 1 14 0Z" /><circle cx="12" cy="9" r="2" /></>,
+  camera: <><path d="M3 7h4l2-3h6l2 3h4v14H3Z" /><circle cx="12" cy="13" r="4" /></>,
+  video: <><rect x="3" y="5" width="12" height="14" rx="2" /><path d="m15 9 6-3v12l-6-3Z" /></>,
+  jump: <><circle cx="12" cy="4" r="2" /><path d="m5 11 7-3 7 3m-7-3v6m0 0-4 5m4-5 4 5M4 22h16" /></>,
+  crouch: <><circle cx="13" cy="5" r="2" /><path d="m11 9-4 5 6 3 4 4m-6-12 5 4 4-2M7 14l-3 7h6" /></>,
+  punch: <><path d="M4 12V7a2 2 0 0 1 4 0v3-6a2 2 0 0 1 4 0v6-5a2 2 0 0 1 4 0v5-3a2 2 0 0 1 4 0v8l-3 5H8l-4-8Zm4 8v2m9-2v2" /></>,
 };
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }): ReactNode {
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;

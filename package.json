@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "turbo run dev",
@@ -12,8 +12,11 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "pnpm --filter web test:e2e",
+    "test:google": "pnpm --filter web test:google",
     "db:generate": "pnpm --filter server db:generate",
-    "db:migrate": "pnpm --filter server db:migrate"
+    "db:migrate": "pnpm --filter server db:migrate",
+    "db:migrates": "pnpm db:migrate",
+    "test:pwa": "pnpm --filter web test:pwa"
   },
   "devDependencies": {
     "turbo": "^2.5.6",

@@ -1,0 +1,222 @@
+# GolfWorld · Meadow Club
+
+A browser-only local vertical slice: walk the neighborhood, arrange a home,
+open your in-world phone, and play a 380-yard par-4 hole. Guest play needs no
+database, account, or API connection. The global map adds real-world address
+search and travel through the guest API. Source of truth:
+[scoobaroo/GolfWorld](https://github.com/scoobaroo/GolfWorld).
+
+## Run
+
+Requires Node **22.12+** and **pnpm 11.19.0**. Use pnpm only.
+On this Codex workstation, bundled Node/pnpm are available via the optional
+first line below; on other machines it keeps an existing Node/pnpm installation.
+
+```sh
+cd /Users/erichan/Repos/GolfWorld
+source scripts/use-codex-runtime.sh
+pnpm install
+pnpm dev
+```
+
+Open **http://localhost:5173**. The Hono guest API runs on **3001**
+(`GET /health`, `/api/course`, `/api/catalog`, `/api/geo/search`,
+`/api/geo/neighborhood`). Both servers bind to `0.0.0.0`.
+To try a phone on the same Wi-Fi, visit `http://<YOUR_LAN_IP>:5173` in Safari
+or Chrome; Vite prints the network URL. Allow local-network access if your
+browser asks. An HTTPS deployment or localhost is needed for service workers
+and full PWA behavior; ordinary guest play works over LAN HTTP.
+
+Address suggestions now use **Google Places UI Kit**. Create a project in the
+[Google Cloud Console](https://console.cloud.google.com/), attach billing, enable
+**Maps JavaScript API** and **Places UI Kit**, and create a browser key restricted
+to your development/production origins and those APIs. Copy `.env.example` to
+the root `.env`, set `VITE_GOOGLE_MAPS_API_KEY`, then restart `pnpm dev`. Do not
+commit the key. Google requires internet access; without a key the map explains
+that address search is not configured. Guest golf/home/capture remain available.
+For an explicit keyless local alternative set `VITE_ADDRESS_SEARCH_PROVIDER=photon`.
+See [Google integration notes](docs/google-maps-review.md) for setup and limits.
+
+## Try the slice
+
+| Action | Desktop | Phone |
+| --- | --- | --- |
+| Walk the hub, course, or mapped streets | WASD or arrow keys; forward, back, left, right relative to the camera | Drag the lower-left joystick |
+| Jump | Space or Jump button | Jump button; works while moving |
+| Crouch | Hold C, or toggle Crouch button | Toggle Crouch button; slower movement and a shorter collision capsule |
+| Punch | F or Punch button | Punch button; movable practice crates react to a nearby hit |
+| Look around | Drag the world | Drag the world |
+| Find an address or golf course | Global map → type a location → choose a dropdown suggestion (or ↓/↑ + Enter) | Tap a suggestion; USA, Canada, Taiwan filters |
+| Capture building or area details | Phone → Capture, or Map → Capture building or area | Choose Exterior / Interior / Area; take photos or video, add floor/room labels and save locally |
+| Open phone | P or Phone button | Phone button |
+| Close phone | Esc or close button | Close button or swipe down from phone top |
+| Move between areas | Hub / Home / Golf buttons | Same touch controls |
+| Device GPS | Permission requested when the world opens; Phone → Settings to turn it off | Same; GPS is reused by Capture |
+| Set your name and invert Y | Phone → Settings | Same |
+| Set your appearance | Phone → Settings → Your appearance; Face / Full body preview, drag to turn | Same touch preview and color controls |
+| Place furniture | Home → choose a piece → click the lot pad | Choose a piece → tap the pad |
+| Move / rotate furniture | Select and drag; Rotate 90° | Select and drag; Rotate 90° |
+| Swing | Hold mouse or E, release, then tap/press E at meter center | Hold Swing, release, then tap at center; open its club button for club/aim options |
+
+Home includes an oak chair, garden table, and fern planter. Place all three,
+drag and rotate them, and reload to verify the layout. The navigation shortcuts
+keep the slice quick to review; the golf tee also sits east of the hub.
+
+Golf offers Driver, 7-iron, and Putter. Aim defaults toward the cup; the Aim
+slider offsets that direction. Hold about 1.2 seconds for full power, release
+to start the face meter, then tap near its center. If you wait, the meter
+automatically strikes with the resulting face error. Wait for the ball to
+settle before your next shot; your golfer moves beside the new lie automatically.
+You can walk, jump, crouch, and punch on the course between shots. Stand within
+2.6 meters of the lie to swing, or choose **Return to ball**. Movement actions
+pause during the two-phase swing. Space always jumps; E is the swing shortcut.
+Walking or punching cannot knock the scored ball around. Jumping uses gravity;
+solid walls, building footprints, roofs, and tree trunks block movement.
+The capsule shrinks for crouching and remains crouched under a low ceiling.
+Practice crates beside the clubhouse and tee can be pushed and punched; their
+local physics resets on reload. Footsteps, landings, and impacts have brief
+visual effects. Actions are local; multiplayer combat/damage is not implemented.
+The flight camera follows the ball without turning back toward the cup mid-shot.
+Open **Scorecard** on the hole panel for par, stroke count, and a shot/penalty log;
+the final score against par appears on hole-out. The live card is also in Phone → Scores.
+Use the driver for distance, the iron for
+approaches, and the putter on the green. Try aiming toward the blue pond or
+outside the course: the ball drops at the last lie and adds one penalty.
+
+A slow ball inside the cup completes the hole. The result records display
+name, total strokes including penalties, last-shot club, course, and timestamp.
+Open Phone → Scores and reload to verify persistence. Scores rank by strokes.
+The **Global map** button and **Phone → Map** search USA, Canada, and Taiwan.
+Try `333 Main Street Winnipeg`, `Kildonan Park Golf Course`,
+`1600 Amphitheatre Parkway Mountain View`, or `台北101`. Click a result to
+load nearby real streets, building footprints, parks, water, and mapped golf
+features in the R3F world. Walk there with the same controls; reopen the map
+for the blue avatar marker. World, zoom, pan, My avatar, and Large map work
+with mouse and touch. Load next neighborhood appears near the region edge.
+Known positions/footprints use WGS84 and real meters. Building heights and
+road widths can be estimates, terrain is flat, and data coverage varies;
+this is not an exact visual reconstruction of every address/building.
+Canadian street addresses and Traditional Chinese Taiwanese addresses use the
+same lookup. Select Canada or Taiwan to narrow matches. Try
+`River Springs Dr` or `台北市信義區信義路五段7號`. Google's widget owns its
+suggestions, ranking and attribution. Selected places resolve through a visible
+Google details card and enter the existing WGS84 travel flow. Google selections
+are session-only: reload returns to Meadow, and provider names/addresses are not
+copied into world saves or capture exports. For captures, choose an independently
+mapped building, your device GPS, or a pin you place on the open-data map.
+Photon mode additionally normalizes Taiwanese addresses and removes repeated
+map objects/street segments while retaining distinct tenants and house numbers.
+Tap/click a building for its mapped type, address, and height.
+Real-world courses can be visited; playable golf remains Meadow Run.
+See [geography implementation and Grok handoff](docs/geography-handoff.md)
+for providers, limits, and follow-up work. Building geometry uses OSM/Overpass;
+Google address suggestions do not import Google's 3D buildings or interiors.
+Public launch needs dedicated world-data infrastructure.
+
+Phone → **Capture** collects exterior, interior and surrounding-area evidence for
+a particular map location, including missing buildings. Indoor drafts support
+floor and room labels even without GPS. Device GPS is requested once when the
+world loads and reused by Capture; it stays separate from the avatar's virtual
+position. Phone → Settings can disable it, with that preference remembered.
+Location updates pause while the world is hidden. Review, save, reopen from
+purple map pins, and export media plus JSON. Camera/GPS/direction need HTTPS on physical
+phones (localhost works for development); native photo/video selection is also
+available. Drafts stay in this browser's IndexedDB, with a 25 MB per-capture and
+100 MB / 30-draft budget. They collect evidence; shared publication and automatic
+3D reconstruction await [user/Grok design review](docs/building-capture-review.md).
+
+Inventory and Shop display the included starter catalog. Friends is a
+placeholder. Checkout is disabled.
+
+## Commands
+
+```sh
+pnpm dev
+pnpm --filter web dev
+pnpm --filter server dev
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:google
+pnpm --filter web test
+pnpm --filter shared test
+pnpm --filter web build
+```
+
+Browser tests are separate from unit tests:
+
+```sh
+pnpm --filter web exec playwright install chromium webkit
+pnpm test:e2e
+pnpm test:pwa        # production build + cached offline visit
+```
+
+Tests exercise desktop Chromium, Android phone Chromium, iPhone WebKit, and iPad
+WebKit emulation. They cover profile and layout persistence, the 3D appearance
+preview, natural idle/walk poses, address travel/map/restore/failure recovery,
+touch swings, scoring, complete Rapier ball flights, local photo/video evidence,
+indoor labels, sensor denial, export, and offline draft reopening.
+Emulation is not a substitute for performance checks on physical phones
+and tablets.
+For this session's downloaded browsers, set
+`PLAYWRIGHT_BROWSERS_PATH=/private/tmp/golfworld-browsers` before browser tests;
+a normal Playwright installation uses its default cache instead.
+
+## Optional Postgres
+
+```sh
+docker compose up -d postgres
+pnpm db:migrate
+```
+
+Compose uses **postgres:16** at **5432**. The initial Drizzle migration is
+committed for profiles, lots, score events, and inventory grants. It can be
+regenerated after schema changes with `pnpm db:generate`. Default development
+credentials are in `.env.example`; set `DATABASE_URL` in your shell to override
+them. The guest API does not connect to Postgres yet. Migration execution
+requires Docker/Postgres and is separate from guest startup.
+
+Environment options are documented in `.env.example`. Vite and the API read
+the root `.env` or shell overrides; Drizzle variables come from the shell.
+An empty `VITE_API_URL` uses the same-origin API (proxied by Vite during dev).
+`VITE_COMMERCE_ENABLED=false` documents the future gate; this slice has no
+checkout route or checkout action at either value.
+
+## Boundaries and next slice
+
+- 1 world unit = 1 meter; gravity is 9.81 m/s². Yards are display-only.
+- React 19/Vite, R3F/Three/Drei/Rapier, Zustand, and Tailwind v4 are the only
+  client renderer/state/style systems. The environment remains blockout; the
+  starter golfer uses a smooth, textured Mixamo character with blended idle and
+  walking animations. It remains stylized; this is not GTA 6 visual parity.
+  [Asset credits](docs/avatar-assets.md) and [visual roadmap](docs/visual-quality.md).
+- Local Rapier uses a regulation-radius collider with an enlarged visual ball,
+  CCD, fixed 60 Hz stepping, per-surface friction/restitution and drag, and a
+  forgiving 22 cm cup radius for this practice slice. The avatar is kinematic.
+- Name, invert Y, avatar colors, furniture, and scores use the versioned
+  `golfworld.local.v1` localStorage record. Corrupt data falls back to defaults.
+  A warning appears if storage is unavailable. Local rounds are not competitive
+  server-verified scores.
+- Typed match/hub/lot/identity contracts leave room for Colyseus, Better Auth,
+  and Drizzle persistence. No multiplayer or authentication is implemented.
+  The server accepts no client score/grant submissions.
+- `packages/economy` defines stable `ItemSku`, `InventoryGrant`, and
+  `FulfillmentAdapter` contracts. `LocalFulfillment` uses a development memory
+  store; its TODO is Drizzle rows. No payments, wallet, or on-chain logic exists.
+- Production builds include a manifest, PNG/SVG icons, safe-area controls,
+  and a network-first offline cache. Dev builds do not register a service worker.
+
+The next job is **Colyseus GolfMatchRoom + authoritative scoring**.
+[Ready-to-paste next-session prompt](docs/next-session.md).
+
+The proposed Winnipeg pilot, Bay Area/Taiwan expansion, messaging, likeness
+avatars, and friend teleport behavior are recorded in
+[the user/Grok design review](docs/city-social-avatar-review.md).
+
+```text
+apps/web/src/       app/ world/ geo/ golf/ home/ phone/ net/ ui/
+apps/server/src/    geo/ rooms/ sim/ db/ auth/ economy/
+packages/shared/   models, Zod schemas, course, shot and score rules
+packages/economy/  catalog and fulfillment port
+docs/              stack decision and next-session prompt
+```
