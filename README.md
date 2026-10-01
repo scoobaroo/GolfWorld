@@ -2,7 +2,8 @@
 
 A browser-only local vertical slice: walk the neighborhood, arrange a home,
 open your in-world phone, and play a 380-yard par-4 hole. Guest play needs no
-database, account, or API connection. Source of truth:
+database, account, or API connection. The global map adds real-world address
+search and travel through the guest API. Source of truth:
 [scoobaroo/GolfWorld](https://github.com/scoobaroo/GolfWorld).
 
 ## Run
@@ -19,7 +20,8 @@ pnpm dev
 ```
 
 Open **http://localhost:5173**. The Hono guest API runs on **3001**
-(`GET /health`, `/api/course`, `/api/catalog`). Both servers bind to `0.0.0.0`.
+(`GET /health`, `/api/course`, `/api/catalog`, `/api/geo/search`,
+`/api/geo/neighborhood`). Both servers bind to `0.0.0.0`.
 To try a phone on the same Wi-Fi, visit `http://<YOUR_LAN_IP>:5173` in Safari
 or Chrome; Vite prints the network URL. Allow local-network access if your
 browser asks. An HTTPS deployment or localhost is needed for service workers
@@ -31,6 +33,7 @@ and full PWA behavior; ordinary guest play works over LAN HTTP.
 | --- | --- | --- |
 | Walk the hub | WASD or arrow keys | Drag the lower-left joystick |
 | Look around | Drag the world | Drag the world |
+| Find an address or golf course | Global map → enter a location → Search → click a result | Same touch controls; USA, Canada, Taiwan filters |
 | Open phone | P or Phone button | Phone button |
 | Close phone | Esc or close button | Close button or swipe down from phone top |
 | Move between areas | Hub / Home / Golf buttons | Same touch controls |
@@ -59,8 +62,24 @@ outside the course: the ball drops at the last lie and adds one penalty.
 A slow ball inside the cup completes the hole. The result records display
 name, total strokes including penalties, last-shot club, course, and timestamp.
 Open Phone → Scores and reload to verify persistence. Scores rank by strokes.
-Phone Map is a schematic stub with travel buttons; Inventory and Shop display
-the included starter catalog. Friends is a placeholder. Checkout is disabled.
+The **Global map** button and **Phone → Map** search USA, Canada, and Taiwan.
+Try `333 Main Street Winnipeg`, `Kildonan Park Golf Course`,
+`1600 Amphitheatre Parkway Mountain View`, or `台北101`. Click a result to
+load nearby real streets, building footprints, parks, water, and mapped golf
+features in the R3F world. Walk there with the same controls; reopen the map
+for the blue avatar marker. World, zoom, pan, My avatar, and Large map work
+with mouse and touch. Load next neighborhood appears near the region edge.
+Known positions/footprints use WGS84 and real meters. Building heights and
+road widths can be estimates, terrain is flat, and data coverage varies;
+this is not an exact visual reconstruction of every address/building.
+Tap/click a building for its mapped type, address, and height.
+Real-world courses can be visited; playable golf remains Meadow Run.
+See [geography implementation and Grok handoff](docs/geography-handoff.md)
+for providers, limits, and follow-up work. Local defaults need no API key;
+public launch needs dedicated world-data infrastructure.
+
+Inventory and Shop display the included starter catalog. Friends is a
+placeholder. Checkout is disabled.
 
 ## Commands
 
@@ -86,8 +105,9 @@ pnpm test:pwa        # production build + cached offline visit
 
 Tests exercise desktop Chromium, Android phone Chromium, iPhone WebKit, and iPad
 WebKit emulation. They cover profile and layout persistence, the 3D appearance
-preview, natural idle/walk poses, touch swings, scoring, and complete Rapier ball
-flights. Emulation is not a substitute for performance checks on physical phones
+preview, natural idle/walk poses, address travel/map/restore/failure recovery,
+touch swings, scoring, and complete Rapier ball flights.
+Emulation is not a substitute for performance checks on physical phones
 and tablets.
 For this session's downloaded browsers, set
 `PLAYWRIGHT_BROWSERS_PATH=/private/tmp/golfworld-browsers` before browser tests;
@@ -107,8 +127,9 @@ credentials are in `.env.example`; set `DATABASE_URL` in your shell to override
 them. The guest API does not connect to Postgres yet. Migration execution
 requires Docker/Postgres and is separate from guest startup.
 
-Environment options are documented in `.env.example`. Vite reads variables
-from `apps/web/.env` or the shell; server/Drizzle variables come from the shell.
+Environment options are documented in `.env.example`. Vite and the API read
+the root `.env` or shell overrides; Drizzle variables come from the shell.
+An empty `VITE_API_URL` uses the same-origin API (proxied by Vite during dev).
 `VITE_COMMERCE_ENABLED=false` documents the future gate; this slice has no
 checkout route or checkout action at either value.
 
@@ -144,8 +165,8 @@ avatars, and friend teleport behavior are recorded in
 [the user/Grok design review](docs/city-social-avatar-review.md).
 
 ```text
-apps/web/src/       app/ world/ golf/ home/ phone/ net/ ui/
-apps/server/src/    rooms/ sim/ db/ auth/ economy/
+apps/web/src/       app/ world/ geo/ golf/ home/ phone/ net/ ui/
+apps/server/src/    geo/ rooms/ sim/ db/ auth/ economy/
 packages/shared/   models, Zod schemas, course, shot and score rules
 packages/economy/  catalog and fulfillment port
 docs/              stack decision and next-session prompt

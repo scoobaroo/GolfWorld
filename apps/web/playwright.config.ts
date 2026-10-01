@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
-  testDir: './e2e', testMatch: 'slice.spec.ts', timeout: 90_000, workers: 1,
+  testDir: './e2e', testMatch: ['slice.spec.ts', 'geo.spec.ts'], timeout: 90_000, workers: 1,
   use: { baseURL: 'http://127.0.0.1:5173', trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },

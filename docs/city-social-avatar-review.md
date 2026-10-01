@@ -1,9 +1,13 @@
 # City, social, and avatar expansion — user/Grok review
 
-Status: proposal, September 30, 2026. The local Meadow Club slice remains
+Status: proposal, September 30, 2026. The user subsequently authorized address
+search/map/world implementation before Grok review; see
+[implemented geography and handoff](geography-handoff.md). This note's remaining
+social, ownership, and likeness proposals still need review. The local Meadow Club slice remains
 playable. Basic avatar colors can now be selected in Phone → Settings and
-saved locally. Accounts, messaging, city geometry, likeness generation, and
-friend teleporting are not implemented.
+saved locally. Accounts, messaging, likeness generation, and
+friend teleporting are not implemented. Sourced neighborhood blockouts and
+address travel are now implemented; a complete audited city is not.
 
 ## Product direction
 
@@ -73,5 +77,6 @@ the import for Bay Area/Taiwan city records.
 3. Select the avatar likeness provider/style and photo retention behavior.
 4. Confirm map/building/terrain sources and the first course to make playable.
 
-Per the collaboration rule, city/social/likeness implementation stops at this
-design note until user/Grok review. No second stack has been introduced.
+The later user instruction authorizes the geography implementation linked
+above. Social/ownership/likeness architecture still stops at this note for
+user/Grok review. No second world renderer has been introduced.

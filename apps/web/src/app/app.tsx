@@ -4,6 +4,7 @@ import { Hud } from '../ui/hud';
 import { Phone } from '../phone/phone';
 import { useGame } from './store';
 import { controls, resetControls } from '../world/input';
+import { useGeo } from '../geo/store';
 const WorldScene = lazy(() => import('../world/world-scene'));
 
 class WorldBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -20,6 +21,7 @@ export function App(): ReactNode {
   const mode = useGame((state) => state.mode);
   const worldReady = useGame((state) => state.worldReady);
   const drag = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => { void useGeo.getState().restore(); }, []);
   useEffect(() => {
     const keyDown = (event: KeyboardEvent): void => {
       if (event.code === 'Escape') useGame.getState().togglePhone(false);
@@ -36,9 +38,12 @@ export function App(): ReactNode {
   return <main className="relative h-dvh w-screen overflow-hidden bg-emerald-950" data-world-ready={worldReady}>
     <div className="world-canvas" onPointerDown={(event) => {
       if (mode === 'home' || phoneOpen || event.button !== 0) return;
-      drag.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId);
+      drag.current = { x: event.clientX, y: event.clientY };
     }} onPointerMove={(event) => {
       const last = drag.current; if (!last) return;
+      // Capture only an actual camera drag. Capturing a tap on the wrapper
+      // prevents the canvas from receiving the click used to inspect buildings.
+      if (Math.abs(event.clientX - last.x) + Math.abs(event.clientY - last.y) > 2) event.currentTarget.setPointerCapture(event.pointerId);
       controls.yaw -= (event.clientX - last.x) * 0.006;
       controls.pitch = clamp(controls.pitch + (event.clientY - last.y) * 0.003 * (useGame.getState().profile.invertY ? -1 : 1), -0.1, 0.9);
       drag.current = { x: event.clientX, y: event.clientY };

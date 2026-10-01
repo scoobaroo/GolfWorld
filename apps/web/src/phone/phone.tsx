@@ -4,6 +4,7 @@ import { useGame } from '../app/store';
 import { Icon, type IconName } from '../ui/icons';
 import { Scores } from '../ui/scores';
 import { Appearance } from './appearance';
+import { MapApp } from '../geo/map-app';
 type PhoneApp = 'home-screen' | 'map' | 'scores' | 'home' | 'inventory' | 'friends' | 'shop' | 'settings';
 const apps: { id: Exclude<PhoneApp, 'home-screen'>; label: string; icon: IconName; color: string }[] = [
   { id: 'map', label: 'Map', icon: 'map', color: '#568777' }, { id: 'scores', label: 'Scores', icon: 'scores', color: '#d39f53' },
@@ -22,11 +23,8 @@ function Settings(): ReactNode {
     <button className="primary" type="submit">Save name</button>{saved && <p role="status" className="saved-message">Name saved.</p>}
   </form>;
 }
-function MapApp(): ReactNode {
-  return <><p className="muted">Neighborhood preview · a live map is coming later.</p><div className="map-preview"><span className="map-trees">THE MEADOWS</span><div className="map-course">MEADOW RUN <Icon name="flag" /></div><div className="map-hub">Clubhouse</div><div className="map-lot">Your lot</div><i className="map-you" /></div><div className="destination-list"><button onClick={() => useGame.getState().setMode('hub')}>Visit clubhouse <Icon name="arrow" /></button><button onClick={() => useGame.getState().setMode('home')}>Visit your lot <Icon name="arrow" /></button><button onClick={() => useGame.getState().setMode('golf')}>Go to Meadow Run <Icon name="arrow" /></button></div></>;
-}
 export function Phone(): ReactNode {
-  const [current, setCurrent] = useState<PhoneApp>('home-screen');
+  const [current, setCurrent] = useState<PhoneApp>(() => useGame.getState().phonePage);
   const profile = useGame((state) => state.profile);
   const panel = useRef<HTMLDivElement>(null);
   const swipeStart = useRef(0);

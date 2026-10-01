@@ -11,21 +11,23 @@ export function readSavedData(storage: Pick<Storage, 'getItem'>): SavedData {
 }
 let saved = defaultData;
 try { saved = readSavedData(localStorage); } catch { /* Private browsing can deny storage. */ }
-export type Mode = 'hub' | 'home' | 'golf';
+export type Mode = 'hub' | 'home' | 'golf' | 'explore';
 type ShotCommand = ShotIntent & { id: number };
 interface GameStore extends SavedData {
-  mode: Mode; phoneOpen: boolean; worldReady: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
+  mode: Mode; phoneOpen: boolean; phonePage: 'home-screen' | 'map'; worldReady: boolean; storageError: boolean; selectedFurniture: string | null; placing: FurnitureSku | null;
   ball: Vec3; ballAtRest: boolean; strokes: number; roundEvents: StrokeEvent[]; club: ClubId; aim: number; round: number; shot: ShotCommand | null; complete: Score | null; notice: string;
   setMode(mode: Mode): void; togglePhone(open?: boolean): void; setProfile(profile: Profile): void;
+  openMap(): void;
   setAppearance(appearance: AvatarAppearance): void;
   selectFurniture(id: string | null): void; setPlacing(sku: FurnitureSku | null): void; placeFurniture(pos: Vec3): void; moveFurniture(id: string, pos: Vec3): void; rotateFurniture(): void; removeFurniture(): void;
   setClub(club: ClubId): void; setAim(aim: number): void; hit(power: number, face: number): void; updateBall(ball: Vec3, ballAtRest: boolean): void; penalty(): void; finish(): void; resetRound(): void;
 }
 export const useGame = create<GameStore>((set, get) => ({
-  ...saved, mode: 'hub', phoneOpen: false, worldReady: false, storageError: false, selectedFurniture: null, placing: null,
+  ...saved, mode: 'hub', phoneOpen: false, phonePage: 'home-screen', worldReady: false, storageError: false, selectedFurniture: null, placing: null,
   ball: [...COURSE.tee], ballAtRest: true, strokes: 0, roundEvents: [], club: 'driver', aim: 0, round: 0, shot: null, complete: null, notice: '',
   setMode: (mode) => set({ mode, phoneOpen: false, placing: null, selectedFurniture: null }),
-  togglePhone: (open) => set({ phoneOpen: open ?? !get().phoneOpen }),
+  togglePhone: (open) => set({ phoneOpen: open ?? !get().phoneOpen, phonePage: 'home-screen' }),
+  openMap: () => set({ phoneOpen: true, phonePage: 'map' }),
   setProfile: (profile) => set({ profile }),
   setAppearance: (appearance) => set({ appearance }),
   selectFurniture: (selectedFurniture) => set({ selectedFurniture, placing: null }),
